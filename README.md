@@ -80,6 +80,40 @@ npm run dev             # runs `netlify dev`, serving the page + function locall
 `/.netlify/functions/submit-story`, matching what `app.js` calls in
 production.
 
+## Embedding in Squarespace
+
+This page talks to a Netlify Function, so it can't be pasted directly into a
+Squarespace code block the way the original static mockup was — a code
+block runs on the Squarespace domain, and relative calls to
+`/.netlify/functions/submit-story` would hit Squarespace's own server
+instead of Netlify.
+
+Instead, embed it via an iframe pointing at the live Netlify site. Paste
+this into a Squarespace **Code Block**:
+
+```html
+<iframe
+  id="horizons-story-embed"
+  src="https://horizons-care-stories.netlify.app/"
+  style="width:100%; border:none; display:block;"
+  height="900"
+  title="Add your voice — Horizon's Project story submission"
+></iframe>
+<script>
+  window.addEventListener('message', function (e) {
+    if (e.data && e.data.type === 'horizons-embed-resize') {
+      var frame = document.getElementById('horizons-story-embed');
+      if (frame) frame.style.height = e.data.height + 'px';
+    }
+  });
+</script>
+```
+
+`app.js` posts its content height to the parent page whenever it changes
+(recording started/stopped, form submitted, error shown, etc.), and the
+script above resizes the iframe to match, so there's no dead space or inner
+scrollbar once it's on the page.
+
 ## Notes on sharing / privacy
 
 Uploaded recordings are **not** made public by this code — the Drive file's

@@ -153,4 +153,18 @@
       setStatus(err.message || 'Something went wrong submitting your story. Please try again.', 'error');
     }
   });
+
+  // When embedded in an iframe (e.g. a Squarespace code block), tell the
+  // parent page our content height so it can size the iframe to match
+  // instead of showing a fixed-height scrollbar.
+  if (window.parent !== window) {
+    const sendHeight = () => {
+      window.parent.postMessage(
+        { type: 'horizons-embed-resize', height: document.documentElement.scrollHeight },
+        '*'
+      );
+    };
+    new ResizeObserver(sendHeight).observe(document.documentElement);
+    window.addEventListener('load', sendHeight);
+  }
 })();
