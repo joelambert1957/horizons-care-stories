@@ -12,9 +12,9 @@ uploads the audio to Google Drive and logs the submission in a Google Sheet.
   minutes), then on submit base64-encodes the recording and POSTs it as JSON
   to the Netlify Function.
 - `netlify/functions/submit-story.js` — receives the POST, authenticates to
-  Google as a service account, uploads the audio file into a specific Drive
-  folder, and appends a row (timestamp, name, city, consent, Drive link) to a
-  specific Google Sheet.
+  Google as a real user via OAuth2 (using a stored refresh token), uploads
+  the audio file into a specific Drive folder, and appends a row (timestamp,
+  name, city, consent, Drive link) to a specific Google Sheet.
 
 Recordings are capped client-side (and re-checked server-side) at 4MB raw
 audio, which comfortably covers a 2-minute voice recording while staying
@@ -28,22 +28,39 @@ Set these in **Netlify → Site configuration → Environment variables** (or vi
 
 | Variable | Description |
 |---|---|
-| `GOOGLE_SERVICE_ACCOUNT_EMAIL` | The service account's `client_email`, e.g. `story-uploader@your-project.iam.gserviceaccount.com`. |
-| `GOOGLE_PRIVATE_KEY` | The service account's `private_key` from its JSON key file. Paste it with literal `\n` sequences for line breaks — the function converts them to real newlines at runtime. In the Netlify UI, paste the key as a single-line value with `\n` in place of line breaks. |
-| `GOOGLE_DRIVE_FOLDER_ID` | The ID of the Drive folder recordings should be uploaded into (the long ID segment in the folder's URL). This folder must be shared with the service account's email as an **Editor**. |
-| `GOOGLE_SHEET_ID` | The ID of the Google Sheet to log submissions to (the long ID segment in the sheet's URL). This sheet must also be shared with the service account's email as an **Editor**. Rows are appended to the `Sheet1` tab in columns A–E (timestamp, name, city, consent, Drive link) — make sure that tab exists. |
+| `GOOGLE_OAUTH_CLIENT_ID` | The OAuth client's ID, from Google Cloud Console → APIs & Services → Credentials. |
+| `GOOGLE_OAUTH_CLIENT_SECRET` | The OAuth client's secret, from the same credential. |
+| `GOOGLE_OAUTH_REFRESH_TOKEN` | A refresh token for the Google account that should own the uploads (e.g. `joe@storyhost.net`), generated once via `scripts/get-refresh-token.js` (see below). |
+| `GOOGLE_DRIVE_FOLDER_ID` | The ID of the Drive folder recordings should be uploaded into (the long ID segment in the folder's URL). Must belong to (or be shared as **Editor** with) the account the refresh token was issued for. |
+| `GOOGLE_SHEET_ID` | The ID of the Google Sheet to log submissions to (the long ID segment in the sheet's URL). Must also be accessible to that same account. Rows are appended to the `Sheet1` tab in columns A–E (timestamp, name, city, consent, Drive link) — make sure that tab exists. |
 
-Setting up the Google Cloud project itself (creating the service account,
-enabling the Drive and Sheets APIs, generating the key, sharing the folder
-and sheet with the service account) is being handled separately.
+Setting up the Google Cloud project itself (creating the OAuth client,
+enabling the Drive and Sheets APIs) is being handled separately.
+
+### Generating the refresh token
+
+`GOOGLE_OAUTH_REFRESH_TOKEN` is produced once, locally, by running:
+
+```bash
+GOOGLE_OAUTH_CLIENT_ID="..." GOOGLE_OAUTH_CLIENT_SECRET="..." node scripts/get-refresh-token.js
+```
+
+This starts a local server, prints a Google consent URL to open in your
+browser, and once you approve access it prints the refresh token to your
+terminal. Copy it straight from there into Netlify — it's a long-lived
+credential, equivalent to a password for that Google account's Drive/Sheets
+access, so treat it accordingly (don't paste it into chat, tickets, etc.).
+The OAuth client's **Authorized redirect URIs** (in Cloud Console) must
+include `http://localhost:3000/oauth2callback` for this to work.
 
 ### Setting variables in Netlify
 
 Via the CLI, from the project root:
 
 ```bash
-netlify env:set GOOGLE_SERVICE_ACCOUNT_EMAIL "story-uploader@your-project.iam.gserviceaccount.com"
-netlify env:set GOOGLE_PRIVATE_KEY "-----BEGIN PRIVATE KEY-----\nMIIEvQ...\n-----END PRIVATE KEY-----\n"
+netlify env:set GOOGLE_OAUTH_CLIENT_ID "..."
+netlify env:set GOOGLE_OAUTH_CLIENT_SECRET "..."
+netlify env:set GOOGLE_OAUTH_REFRESH_TOKEN "..."
 netlify env:set GOOGLE_DRIVE_FOLDER_ID "1AbCdeFGhIJkLmNoPQRstuVWxyz"
 netlify env:set GOOGLE_SHEET_ID "1AbCdeFGhIJkLmNoPQRstuVWxyz"
 ```
