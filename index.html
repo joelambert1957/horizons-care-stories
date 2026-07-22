@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Horizon's Project — Add Your Voice</title>
+<meta name="description" content="Record a short story of economic care and add your voice to Horizon's Project's national audio archive.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,400;0,500;1,400&family=Karla:wght@400;600&family=IBM+Plex+Mono:wght@400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="lyst-wrap">
+<div class="lyst-inner">
+
+  <p class="eyebrow">Horizon's Project — Economies of Care</p>
+  <h1>Add your voice <em>to the record.</em></h1>
+  <p class="sub">Tell us one small story of economic care — something you did, received, or witnessed. Two minutes, spoken in your own voice. Your story joins a growing national audio archive, gathered from tables across the country, that Horizon's Project is building to inform and publicize policy efforts like an Economic Justice Bill of Rights.</p>
+
+  <div class="recorder">
+    <div class="ring-stage" id="lystRingStage">
+      <div class="ring ring1"></div>
+      <div class="ring ring2"></div>
+      <div class="ring ring3"></div>
+      <button class="rec-btn" id="lystRecBtn" aria-label="Start recording">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="9" y="2" width="6" height="12" rx="3"></rect>
+          <path d="M5 10a7 7 0 0 0 14 0"></path>
+          <line x1="12" y1="21" x2="12" y2="17"></line>
+        </svg>
+      </button>
+    </div>
+    <div class="timer" id="lystTimer">0:00</div>
+    <div class="hint" id="lystHint">Tap to start recording — up to 2 minutes</div>
+    <audio id="lystPlayback" controls style="display:none;"></audio>
+  </div>
+
+  <div class="card">
+    <p class="card-label">The prompt</p>
+    <p class="prompt">"What's a small act of economic care you've done or witnessed — one you haven't told anyone about yet?"</p>
+  </div>
+
+  <form id="lystForm">
+    <div class="field">
+      <label for="lystName">Name <span style="color:var(--muted)">(optional)</span></label>
+      <input type="text" id="lystName" placeholder="How you'd like to be credited">
+    </div>
+    <div class="field">
+      <label for="lystCity">City or state <span style="color:var(--muted)">(optional)</span></label>
+      <input type="text" id="lystCity" placeholder="Santa Fe, NM">
+    </div>
+
+    <label class="consent">
+      <input type="checkbox" id="lystConsent" required>
+      <span>I hereby grant to StoryHost, LLC ("Producer") and their respective parents, affiliates, subsidiaries, licensees, successors and assigns the right to use this audio recording uploaded here to Producer, for the use of the Horizon's Project Economies of Care Project. <strong>Yes, I grant this release.</strong></span>
+    </label>
+
+    <button type="submit" class="submit-btn" id="lystSubmitBtn" disabled>Submit your story</button>
+    <div class="submit-status" id="lystSubmitStatus"></div>
+  </form>
+
+  <div class="thankyou" id="lystThankyou">
+    <p>Thank you for leaving something at the table.</p>
+    <span>Your story joins the ones already gathered — carry a little of theirs with you too.</span>
+  </div>
+
+  <footer>
+    <span>A project of Horizon's Project. Recorded with care, kept with consent.</span>
+    <span class="tally">1,204 stories · 38 states</span>
+  </footer>
+
+</div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
