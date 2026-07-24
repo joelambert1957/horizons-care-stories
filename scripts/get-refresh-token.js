@@ -24,6 +24,11 @@ const oauth2Client = new google.auth.OAuth2(CLIENT_ID, CLIENT_SECRET, REDIRECT_U
 const SCOPES = [
   'https://www.googleapis.com/auth/drive.file',
   'https://www.googleapis.com/auth/spreadsheets',
+  // Lets this same user identity call Vertex AI (for transcribe-stories.js),
+  // since org policy blocks creating a service account key instead. Requires
+  // the account (joe@storyhost.net) to have the "Vertex AI User" IAM role
+  // granted on the GCP project -- Cloud Console -> IAM -> Grant Access.
+  'https://www.googleapis.com/auth/cloud-platform',
 ];
 
 const authUrl = oauth2Client.generateAuthUrl({

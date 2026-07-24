@@ -53,7 +53,8 @@ This starts a local server, prints a Google consent URL to open in your
 browser, and once you approve access it prints the refresh token to your
 terminal. Copy it straight from there into Netlify — it's a long-lived
 credential, equivalent to a password for that Google account's Drive/Sheets
-access, so treat it accordingly (don't paste it into chat, tickets, etc.).
+**and Vertex AI** access (see **Automatic transcription** below), so treat
+it accordingly (don't paste it into chat, tickets, etc.).
 The OAuth client's **Authorized redirect URIs** (in Cloud Console) must
 include `http://localhost:3000/oauth2callback` for this to work.
 
@@ -97,36 +98,54 @@ automatically on the next run; there's currently no give-up/error state for
 a row that fails permanently, worth revisiting once this has run for a
 while.
 
-Transcription uses **different credentials than Drive/Sheets** — a
-dedicated GCP service account, not the OAuth refresh token above. It
-doesn't need to (and shouldn't) be able to impersonate a real Google user;
-it only needs Vertex AI access. The `.docx` upload itself still goes
-through the existing OAuth credentials, since that's what has write access
-to Drive.
+Transcription reuses the **same OAuth credentials as Drive/Sheets**
+(`GOOGLE_OAUTH_CLIENT_ID/SECRET/REFRESH_TOKEN`) rather than a dedicated
+service account — org policy blocks creating service account keys, so
+instead it authenticates to Vertex AI as the same user
+(`joe@storyhost.net`) via google-auth-library's `authorized_user`
+credential type (the same mechanism `gcloud auth application-default
+login` uses). That means the refresh token needs to carry the
+`cloud-platform` scope in addition to Drive/Sheets, and that Google account
+needs the `Vertex AI User` IAM role granted directly on the GCP project
+(not a service account role).
 
 ### One-time setup
 
 1. **Enable the Vertex AI API** on the GCP project — Cloud Console → APIs &
    Services → Library → "Vertex AI API" → Enable.
-2. **Create a service account** scoped to just Vertex AI (role: `Vertex AI
-   User`), then create a JSON key for it. The full contents of that JSON
-   file are what goes into `GOOGLE_VERTEX_SERVICE_ACCOUNT_JSON` below.
-3. **Create a "Transcripts" folder** in Drive and share it as **Editor**
-   with the same Google account `GOOGLE_OAUTH_REFRESH_TOKEN` belongs to
-   (same as how the recordings folder is shared). Its ID becomes
-   `GOOGLE_TRANSCRIPTS_FOLDER_ID`.
-4. **Add two headers to the submissions Sheet**, by hand: `Transcribed` in
+2. **Grant `joe@storyhost.net` the "Vertex AI User" IAM role** on the GCP
+   project — Cloud Console → IAM & Admin → IAM → Grant Access → enter that
+   account → select the `Vertex AI User` role.
+3. **Regenerate the OAuth refresh token** — `scripts/get-refresh-token.js`
+   now requests the `cloud-platform` scope alongside the existing Drive/
+   Sheets scopes, so the token in production needs to be replaced with a
+   freshly-generated one (the old one won't have Vertex AI access). Same
+   command as before:
+   ```bash
+   GOOGLE_OAUTH_CLIENT_ID="..." GOOGLE_OAUTH_CLIENT_SECRET="..." node scripts/get-refresh-token.js
+   ```
+   Update `GOOGLE_OAUTH_REFRESH_TOKEN` in Netlify with the new value — this
+   is the **one required step that affects the already-live
+   `submit-story.js`** too (it uses the same variable), though nothing
+   about its behavior changes, just which token it holds.
+4. **Create a "Transcripts" folder** in Drive and share it as **Editor**
+   with that same account. Its ID becomes `GOOGLE_TRANSCRIPTS_FOLDER_ID`.
+5. **Add two headers to the submissions Sheet**, by hand: `Transcribed` in
    `F1` and `Transcript Link` in `G1`. The function assumes row 1 is
    headers and starts reading data from row 2.
 
 ### Environment variables
+
+Only these three are new — everything else transcription needs
+(`GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET`,
+`GOOGLE_OAUTH_REFRESH_TOKEN`, `GOOGLE_SHEET_ID`) is already set from the
+Drive/Sheets setup above.
 
 | Variable | Description |
 |---|---|
 | `GOOGLE_TRANSCRIPTS_FOLDER_ID` | Drive folder ID that finished `.docx` transcripts get uploaded to. |
 | `GOOGLE_CLOUD_PROJECT_ID` | The GCP project ID (not the numeric project number) that has Vertex AI enabled. |
 | `GOOGLE_CLOUD_LOCATION` | Vertex AI region. Defaults to `us-central1` if unset. |
-| `GOOGLE_VERTEX_SERVICE_ACCOUNT_JSON` | The full JSON key contents for the Vertex AI service account, as a single-line string. |
 | `GOOGLE_VERTEX_MODEL` | Which Gemini model to call. Defaults to `gemini-2.5-flash`. |
 
 ### Known rough edges

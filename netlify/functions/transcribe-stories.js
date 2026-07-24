@@ -35,26 +35,35 @@ function getDriveAuth() {
   return oauth2Client;
 }
 
-// Deliberately separate from getDriveAuth(): transcription doesn't need to
-// impersonate a real Google user the way the Drive/Sheets uploads do, so it
-// uses its own service account instead of extending the existing OAuth
-// refresh token's scope. Keeps the two credentials independent -- this one
-// can only call Vertex AI, nothing else.
+// Reuses the same OAuth refresh token as getDriveAuth() -- org policy blocks
+// creating service account keys, so this authenticates to Vertex AI as the
+// same user (joe@storyhost.net) instead, via google-auth-library's
+// "authorized_user" credential type (the same mechanism `gcloud auth
+// application-default login` uses under the hood). That refresh token has to
+// have been minted with the cloud-platform scope for this to work -- see
+// scripts/get-refresh-token.js and README.md. Because it's a real user
+// identity, that Google account also needs the Vertex AI User IAM role
+// granted on the GCP project (Cloud Console -> IAM), not a service account.
 function getVertexModel() {
   const project = process.env.GOOGLE_CLOUD_PROJECT_ID;
   const location = process.env.GOOGLE_CLOUD_LOCATION || 'us-central1';
-  const serviceAccountJson = process.env.GOOGLE_VERTEX_SERVICE_ACCOUNT_JSON;
   const modelName = process.env.GOOGLE_VERTEX_MODEL || 'gemini-2.5-flash';
-  if (!project || !serviceAccountJson) {
-    throw new Error('Missing Vertex AI configuration (GOOGLE_CLOUD_PROJECT_ID / GOOGLE_VERTEX_SERVICE_ACCOUNT_JSON).');
+  const clientId = process.env.GOOGLE_OAUTH_CLIENT_ID;
+  const clientSecret = process.env.GOOGLE_OAUTH_CLIENT_SECRET;
+  const refreshToken = process.env.GOOGLE_OAUTH_REFRESH_TOKEN;
+  if (!project || !clientId || !clientSecret || !refreshToken) {
+    throw new Error('Missing Vertex AI configuration (GOOGLE_CLOUD_PROJECT_ID, or the shared GOOGLE_OAUTH_* credentials).');
   }
-  const credentials = JSON.parse(serviceAccountJson);
   const vertexAI = new VertexAI({
     project,
     location,
     googleAuthOptions: {
-      credentials,
-      scopes: ['https://www.googleapis.com/auth/cloud-platform'],
+      credentials: {
+        type: 'authorized_user',
+        client_id: clientId,
+        client_secret: clientSecret,
+        refresh_token: refreshToken,
+      },
     },
   });
   return vertexAI.getGenerativeModel({
