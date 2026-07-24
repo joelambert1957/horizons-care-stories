@@ -186,6 +186,21 @@ html, body {
   outline:none;
   border-color: var(--amber-dim);
 }
+.lyst-wrap .field input[type="file"]{
+  width:100%;
+  color: var(--cream-dim);
+  font-family:'Karla', sans-serif;
+  font-size: 13px;
+}
+.lyst-wrap .field .portrait-preview{
+  display:block;
+  width: 84px;
+  height: 84px;
+  object-fit: cover;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  margin-top: 0.75rem;
+}
 
 .lyst-wrap .consent{
   display:flex;

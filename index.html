@@ -51,10 +51,20 @@
       <label for="lystCity">City or state <span style="color:var(--muted)">(optional)</span></label>
       <input type="text" id="lystCity" placeholder="Santa Fe, NM">
     </div>
+    <div class="field">
+      <label for="lystEvent">Event name <span style="color:var(--muted)">(optional)</span></label>
+      <input type="text" id="lystEvent" placeholder="e.g. Atlanta Care Event">
+    </div>
+    <div class="field">
+      <label for="lystPortrait">Portrait or headshot <span style="color:var(--muted)">(optional)</span></label>
+      <input type="file" accept="image/*" id="lystPortrait">
+      <span class="hint" id="lystPortraitHint"></span>
+      <img id="lystPortraitPreview" class="portrait-preview" style="display:none;" alt="Your uploaded portrait">
+    </div>
 
     <label class="consent">
       <input type="checkbox" id="lystConsent" required>
-      <span>I hereby grant to StoryHost, LLC ("Producer") and their respective parents, affiliates, subsidiaries, licensees, successors and assigns the right to use this audio recording uploaded here to Producer, for the use of the Horizon's Project Economies of Care Project. <strong>Yes, I grant this release.</strong></span>
+      <span>I hereby grant to StoryHost, LLC ("Producer") and their respective parents, affiliates, subsidiaries, licensees, successors and assigns the right to use this audio recording — and, if I've included one, my photo and name displayed together — uploaded here to Producer, for the use of the Horizon's Project Economies of Care Project, including public display on project web pages. <strong>Yes, I grant this release.</strong></span>
     </label>
 
     <button type="submit" class="submit-btn" id="lystSubmitBtn" disabled>Submit your story</button>

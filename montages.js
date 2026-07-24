@@ -1,35 +1,34 @@
 (function () {
   const listEl = document.getElementById('montageList');
   const emptyEl = document.getElementById('montageEmpty');
-  const montages = (window.MONTAGES || [])
+  const events = (window.EVENTS || [])
     .slice()
     .sort((a, b) => (a.date || '').localeCompare(b.date || ''));
 
-  if (!montages.length) {
+  if (!events.length) {
     emptyEl.classList.add('show');
     return;
   }
 
-  montages.forEach((m, i) => {
+  events.forEach((ev, i) => {
     const li = document.createElement('li');
     li.className = 'montage-item';
 
+    const link = document.createElement('a');
+    link.href = `events/${ev.slug}`;
+    link.className = 'montage-link';
+
     const title = document.createElement('h2');
     title.className = 'montage-title';
-    title.textContent = `${i + 1}. ${m.title}`;
-    li.appendChild(title);
+    title.textContent = `${i + 1}. ${ev.title}`;
+    link.appendChild(title);
 
     const meta = document.createElement('p');
     meta.className = 'montage-meta';
-    meta.textContent = [formatDate(m.date), m.location].filter(Boolean).join(' · ');
-    li.appendChild(meta);
+    meta.textContent = [formatDate(ev.date), ev.location].filter(Boolean).join(' · ');
+    link.appendChild(meta);
 
-    const audio = document.createElement('audio');
-    audio.controls = true;
-    audio.preload = 'none';
-    audio.src = m.audio;
-    li.appendChild(audio);
-
+    li.appendChild(link);
     listEl.appendChild(li);
   });
 

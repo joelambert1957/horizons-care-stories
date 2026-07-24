@@ -1,20 +1,25 @@
 # Horizon's Project — Economies of Care: Story Submission
 
 A single-page tool for recording a short (up to 2-minute) audio story of
-economic care, with an optional name/city and a required legal release. On
-submit, the recording and its metadata are sent to a Netlify Function that
-uploads the audio to Google Drive and logs the submission in a Google Sheet.
+economic care, with an optional name/city/event name/portrait and a required
+legal release. On submit, the recording (and photo, if included) are sent to
+a Netlify Function that uploads them to Google Drive and logs the submission
+in a Google Sheet.
 
 ## How it works
 
 - `index.html` / `style.css` / `app.js` — the recorder page. Uses the
   browser's `MediaRecorder` API to capture audio (stops automatically at 2
   minutes), then on submit base64-encodes the recording and POSTs it as JSON
-  to the Netlify Function.
+  to the Netlify Function. A portrait/headshot photo is optional and, if
+  provided, gets resized and compressed to a small thumbnail client-side
+  (via canvas) before upload — see **Events & portraits** below for why.
 - `netlify/functions/submit-story.js` — receives the POST, authenticates to
   Google as a real user via OAuth2 (using a stored refresh token), uploads
-  the audio file into a specific Drive folder, and appends a row (timestamp,
-  name, city, consent, Drive link) to a specific Google Sheet.
+  the audio file into a specific Drive folder, optionally uploads the
+  portrait into a separate folder, and appends a row (timestamp, name, city,
+  consent, Drive link, ..., event name, portrait link) to a specific Google
+  Sheet.
 - `netlify/functions/transcribe-stories.js` — a scheduled function (runs
   every 5 minutes) that finds submissions without a transcript yet,
   transcribes them with Gemini (via Vertex AI), and saves the result as a
@@ -36,7 +41,8 @@ Set these in **Netlify → Site configuration → Environment variables** (or vi
 | `GOOGLE_OAUTH_CLIENT_SECRET` | The OAuth client's secret, from the same credential. |
 | `GOOGLE_OAUTH_REFRESH_TOKEN` | A refresh token for the Google account that should own the uploads (e.g. `joe@storyhost.net`), generated once via `scripts/get-refresh-token.js` (see below). |
 | `GOOGLE_DRIVE_FOLDER_ID` | The ID of the Drive folder recordings should be uploaded into (the long ID segment in the folder's URL). Must belong to (or be shared as **Editor** with) the account the refresh token was issued for. |
-| `GOOGLE_SHEET_ID` | The ID of the Google Sheet to log submissions to (the long ID segment in the sheet's URL). Must also be accessible to that same account. Rows are appended to the `Sheet1` tab in columns A–E (timestamp, name, city, consent, Drive link) — make sure that tab exists. |
+| `GOOGLE_SHEET_ID` | The ID of the Google Sheet to log submissions to (the long ID segment in the sheet's URL). Must also be accessible to that same account. Rows are appended to the `Sheet1` tab in columns A–I (timestamp, name, city, consent, Drive link, Transcribed, Transcript Link, Event Name, Portrait Link) — row 1 must be real headers, and that tab must exist. |
+| `GOOGLE_PORTRAITS_FOLDER_ID` | The ID of the Drive folder portrait photos get uploaded into. Same sharing requirement as the recordings folder. Optional in the sense that submissions without a photo don't need it, but any submission that *does* include one will fail gracefully (story still saves, photo just doesn't upload) if this isn't set. |
 
 Setting up the Google Cloud project itself (creating the OAuth client,
 enabling the Drive and Sheets APIs) is being handled separately.
@@ -158,6 +164,58 @@ Drive/Sheets setup above.
   keep being retried every run indefinitely rather than being flagged and
   skipped.
 
+## Events & portraits
+
+Two more optional fields on the recorder: **event name** (groups
+submissions from the same gathering together) and a **portrait/headshot
+photo**. Neither is required — both work exactly like Name/City already do.
+
+- **Event name** is stored as-typed in the Sheet (column H). It's just a
+  grouping label for you when you go pull a batch of recordings for a
+  montage (e.g. the Python montage pipeline in the sibling `Audio Montage
+  Generator` project) — there's no enforced list of valid event names, so
+  consistent spelling is on whoever's typing it in, or on you if you're
+  cleaning up the Sheet before generating a montage.
+- **Portrait photos** are capped hard on the client (resized to max 480px,
+  compressed to a small JPEG, ~200KB typical/400KB hard ceiling) before
+  upload, *not* the original photo. This is a payload-budget constraint, not
+  a taste choice — Netlify caps a synchronous function's whole request body
+  around 6MB, and the audio alone can already use most of that, so there's
+  only room for a small thumbnail alongside it. If a photo fails to process
+  or upload for any reason, the story submission still succeeds — the photo
+  is treated as a bonus, never something that blocks someone's story from
+  being saved.
+
+### Publishing an event's page
+
+Once you've generated an event's montage locally (same Python pipeline as
+before, just now pointed at that event's Drive/Sheet submissions instead of
+a manually-curated folder) and picked out the portraits to feature:
+
+1. Drop the montage `.mp3` into `montages/` and each portrait image into
+   `portraits/`.
+2. Add one entry to `events-data.js` — title, date, location, the montage
+   file, a `slug` (becomes the URL `/events/<slug>`), and a `portraits`
+   array of `{ name, photo }`. The file has a filled-in example in its
+   comments.
+3. Commit and push.
+
+`montages.html` lists every event (numbered, linking out to its page);
+`event.html` is the actual per-event page — audio player plus a grid of
+portraits with names underneath — driven entirely by that one
+`events-data.js` file via a Netlify redirect (`/events/*` → `/event.html`,
+see `netlify.toml`) so no new static file needs to exist per event.
+
+### One thing to have reviewed before relying on it
+
+The consent checkbox on the recorder was extended to cover public display
+of name + photo together (previously it only mentioned the audio
+recording), since that's a materially bigger disclosure than an anonymous
+voice clip. I drafted reasonable language, but I'm not a lawyer — worth
+having actual counsel (or whoever owns StoryHost's release language) glance
+at the exact wording in `index.html` before this is used for real
+submissions, not just the beta/demo.
+
 ## Local development
 
 ```bash
@@ -210,6 +268,13 @@ Uploaded recordings are **not** made public by this code — the Drive file's
 access is whatever the destination folder's own sharing settings are. Anyone
 who needs to review submissions should be given access to the Drive folder
 directly, rather than relying on the link stored in the Sheet being public.
+
+Portraits are different **by design**: the whole point of an event page is
+to publicly show a photo next to a name (see **Events & portraits**). Only
+the specific images you choose to reference in `events-data.js` end up
+public — the Portraits Drive folder itself isn't exposed — but don't treat
+"private Drive folder" as a meaningful privacy boundary for a photo the way
+it is for a recording; assume anything you add to an event page is public.
 
 ## Deploying
 

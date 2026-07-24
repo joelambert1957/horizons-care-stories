@@ -4,11 +4,19 @@
   margin: 0 0 1rem;
 }
 .montages-wrap .montage-item{
+  margin-bottom: 1rem;
+}
+.montages-wrap .montage-link{
+  display: block;
   background: var(--card);
   border: 1px solid var(--line);
   border-radius: 14px;
   padding: 1.5rem 1.75rem;
-  margin-bottom: 1rem;
+  text-decoration: none;
+  transition: border-color 0.15s ease;
+}
+.montages-wrap .montage-link:hover{
+  border-color: var(--amber-dim);
 }
 .montages-wrap .montage-title{
   font-family: 'Fraunces', serif;
@@ -23,12 +31,7 @@
   font-size: 12px;
   letter-spacing: 0.04em;
   color: var(--muted);
-  margin: 0 0 1rem;
-}
-.montages-wrap .montage-item audio{
-  width: 100%;
-  filter: invert(0.88) sepia(0.1);
-  border-radius: 20px;
+  margin: 0;
 }
 
 .montages-wrap .empty-state{
