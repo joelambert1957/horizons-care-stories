@@ -15,6 +15,10 @@ uploads the audio to Google Drive and logs the submission in a Google Sheet.
   Google as a real user via OAuth2 (using a stored refresh token), uploads
   the audio file into a specific Drive folder, and appends a row (timestamp,
   name, city, consent, Drive link) to a specific Google Sheet.
+- `netlify/functions/transcribe-stories.js` — a scheduled function (runs
+  every 5 minutes) that finds submissions without a transcript yet,
+  transcribes them with Gemini (via Vertex AI), and saves the result as a
+  `.docx` in a separate Drive folder. See **Automatic transcription** below.
 
 Recordings are capped client-side (and re-checked server-side) at 4MB raw
 audio, which comfortably covers a 2-minute voice recording while staying
@@ -67,6 +71,73 @@ netlify env:set GOOGLE_SHEET_ID "1AbCdeFGhIJkLmNoPQRstuVWxyz"
 
 Or in the Netlify UI: **Site configuration → Environment variables → Add a
 variable**, one per row above.
+
+## Automatic transcription
+
+`transcribe-stories.js` runs on its own every 5 minutes (via the
+`schedule()` helper from `@netlify/functions` — no separate cron setup
+needed, Netlify picks it up from the code itself). Each run:
+
+1. Reads the submissions Sheet, skipping any row that already has a value in
+   the **Transcribed** column.
+2. Downloads up to 8 not-yet-transcribed recordings from Drive.
+3. Sends each one to Gemini (`gemini-2.5-flash` by default, via Vertex AI)
+   with a strict verbatim-transcription prompt (temperature 0 — instructed
+   not to summarize, paraphrase, or clean up filler words).
+4. Writes the transcript into a `.docx` and uploads it to the Transcripts
+   Drive folder.
+5. Marks the row **Transcribed** and records a link to the transcript.
+
+The 8-per-run cap is deliberate: it keeps each run comfortably short, and a
+sudden batch (e.g. 20+ submissions from one evening) just gets processed a
+handful at a time across consecutive 5-minute runs rather than all at once
+— nothing is lost, it just trickles through. A row that fails (e.g. Gemini
+returns nothing usable) is logged and left unmarked, so it's retried
+automatically on the next run; there's currently no give-up/error state for
+a row that fails permanently, worth revisiting once this has run for a
+while.
+
+Transcription uses **different credentials than Drive/Sheets** — a
+dedicated GCP service account, not the OAuth refresh token above. It
+doesn't need to (and shouldn't) be able to impersonate a real Google user;
+it only needs Vertex AI access. The `.docx` upload itself still goes
+through the existing OAuth credentials, since that's what has write access
+to Drive.
+
+### One-time setup
+
+1. **Enable the Vertex AI API** on the GCP project — Cloud Console → APIs &
+   Services → Library → "Vertex AI API" → Enable.
+2. **Create a service account** scoped to just Vertex AI (role: `Vertex AI
+   User`), then create a JSON key for it. The full contents of that JSON
+   file are what goes into `GOOGLE_VERTEX_SERVICE_ACCOUNT_JSON` below.
+3. **Create a "Transcripts" folder** in Drive and share it as **Editor**
+   with the same Google account `GOOGLE_OAUTH_REFRESH_TOKEN` belongs to
+   (same as how the recordings folder is shared). Its ID becomes
+   `GOOGLE_TRANSCRIPTS_FOLDER_ID`.
+4. **Add two headers to the submissions Sheet**, by hand: `Transcribed` in
+   `F1` and `Transcript Link` in `G1`. The function assumes row 1 is
+   headers and starts reading data from row 2.
+
+### Environment variables
+
+| Variable | Description |
+|---|---|
+| `GOOGLE_TRANSCRIPTS_FOLDER_ID` | Drive folder ID that finished `.docx` transcripts get uploaded to. |
+| `GOOGLE_CLOUD_PROJECT_ID` | The GCP project ID (not the numeric project number) that has Vertex AI enabled. |
+| `GOOGLE_CLOUD_LOCATION` | Vertex AI region. Defaults to `us-central1` if unset. |
+| `GOOGLE_VERTEX_SERVICE_ACCOUNT_JSON` | The full JSON key contents for the Vertex AI service account, as a single-line string. |
+| `GOOGLE_VERTEX_MODEL` | Which Gemini model to call. Defaults to `gemini-2.5-flash`. |
+
+### Known rough edges
+
+- Recordings from Firefox may arrive as `audio/ogg`, which isn't explicitly
+  documented as a supported Gemini audio input (unlike `audio/webm`,
+  `audio/mp4`, `audio/mpeg`, and `audio/wav`, which all are). Worth testing
+  with a real Firefox submission before relying on this for a demo.
+- No retry limit yet — a permanently broken file (corrupt audio, etc.) will
+  keep being retried every run indefinitely rather than being flagged and
+  skipped.
 
 ## Local development
 
