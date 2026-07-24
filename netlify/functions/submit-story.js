@@ -107,9 +107,22 @@ exports.handler = async (event) => {
   }
 
   try {
-    await sheets.spreadsheets.values.append({
+    // values.append relies on Sheets' own "find the table, write after its
+    // last row, in its columns" heuristic -- that heuristic misread a sparse
+    // early row once already and wrote a real submission's data starting in
+    // column D instead of A. Computing the target row explicitly and writing
+    // to an exact A{n}:E{n} range with values.update sidesteps that
+    // detection entirely, so placement can't drift regardless of what else
+    // is in the sheet.
+    const existing = await sheets.spreadsheets.values.get({
       spreadsheetId: sheetId,
-      range: 'Sheet1!A:E',
+      range: 'Sheet1!A:A'
+    });
+    const nextRow = (existing.data.values ? existing.data.values.length : 0) + 1;
+
+    await sheets.spreadsheets.values.update({
+      spreadsheetId: sheetId,
+      range: `Sheet1!A${nextRow}:E${nextRow}`,
       valueInputOption: 'USER_ENTERED',
       requestBody: {
         values: [[submittedAt, name || '', city || '', consent ? 'yes' : 'no', driveLink]]
