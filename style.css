@@ -240,6 +240,17 @@ html, body {
   color: var(--muted);
 }
 
+.lyst-wrap .montages-link{
+  text-align: center;
+  margin-top: 2.5rem;
+  font-size: 13px;
+}
+.lyst-wrap .montages-link a{
+  color: var(--amber);
+  text-decoration: none;
+}
+.lyst-wrap .montages-link a:hover{ text-decoration: underline; }
+
 .lyst-wrap footer{
   margin-top: 2.5rem;
   padding-top: 1.5rem;

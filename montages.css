@@ -1,0 +1,54 @@
+.montages-wrap .montage-list{
+  list-style: none;
+  padding: 0;
+  margin: 0 0 1rem;
+}
+.montages-wrap .montage-item{
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 1.5rem 1.75rem;
+  margin-bottom: 1rem;
+}
+.montages-wrap .montage-title{
+  font-family: 'Fraunces', serif;
+  font-weight: 500;
+  font-size: 19px;
+  line-height: 1.35;
+  color: var(--cream);
+  margin: 0 0 0.35rem;
+}
+.montages-wrap .montage-meta{
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  margin: 0 0 1rem;
+}
+.montages-wrap .montage-item audio{
+  width: 100%;
+  filter: invert(0.88) sepia(0.1);
+  border-radius: 20px;
+}
+
+.montages-wrap .empty-state{
+  display: none;
+  color: var(--muted);
+  font-size: 14px;
+  text-align: center;
+  padding: 2rem 0;
+}
+.montages-wrap .empty-state.show{ display: block; }
+
+.montages-wrap .back-link{
+  text-align: center;
+  margin-top: 2.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--line);
+  font-size: 13px;
+}
+.montages-wrap .back-link a{
+  color: var(--amber);
+  text-decoration: none;
+}
+.montages-wrap .back-link a:hover{ text-decoration: underline; }
