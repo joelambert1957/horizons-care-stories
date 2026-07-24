@@ -117,9 +117,10 @@ async function buildTranscriptDocx({ transcript, name, city, submittedAt }) {
 
 async function handleRow({ drive, model, transcriptsFolderId, row, rowNumber, sheets, sheetId }) {
   const [timestamp, name, city, consent, driveLink] = row;
+  console.log(`Row ${rowNumber} raw:`, JSON.stringify(row)); // TEMP diagnostic
 
-  if (!driveLink) return; // nothing to transcribe
-  if (consent !== 'yes') return; // defensive -- submit-story.js already enforces this
+  if (!driveLink) { console.log(`Row ${rowNumber}: no driveLink, skipping.`); return; }
+  if (consent !== 'yes') { console.log(`Row ${rowNumber}: consent was "${consent}", skipping.`); return; } // defensive -- submit-story.js already enforces this
 
   const fileId = extractDriveFileId(driveLink);
   if (!fileId) {
