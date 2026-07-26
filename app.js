@@ -14,10 +14,19 @@
   const PORTRAIT_TARGET_BYTES = 220 * 1024;
   const PORTRAIT_HARD_CAP_BYTES = 400 * 1024;
 
+  const MIC_BLOCKED_MESSAGE = 'Microphone access is blocked. Click the 🔒 lock icon next to the address bar, allow the microphone, then reload this page.';
+
   let mediaRecorder, chunks = [], stream, timerInterval, seconds = 0;
   let recordedBlob = null;
   let portraitBlob = null;
   let submitting = false;
+  // First tap only asks for microphone permission (doesn't record yet) --
+  // separating "grant access" from "start talking" so the browser's native
+  // permission prompt shows up in a clearly-labeled, low-stakes moment
+  // instead of feeling like an unexpected interruption right as someone
+  // starts trying to tell their story. People are less likely to reflexively
+  // hit "Block" on something they were told to expect.
+  let micPrimed = false;
 
   const recBtn = document.getElementById('lystRecBtn');
   const ringStage = document.getElementById('lystRingStage');
@@ -62,16 +71,51 @@
   }
   consent.addEventListener('change', updateSubmitState);
 
+  async function primeMic(){
+    try {
+      const testStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      // Only needed the permission grant, not an open mic right now --
+      // release the hardware immediately so there's no lingering
+      // recording indicator before they've actually chosen to record.
+      testStream.getTracks().forEach(t => t.stop());
+      micPrimed = true;
+      setHint('Tap to start recording — up to 2 minutes', false);
+      recBtn.setAttribute('aria-label', 'Start recording');
+    } catch (err) {
+      setHint(MIC_BLOCKED_MESSAGE, true);
+    }
+  }
+
+  // Returning visitors may already have a decision on record for this site;
+  // check upfront so they're not asked to "get ready" if we already know
+  // the answer. Safari doesn't support querying 'microphone' this way, so
+  // this degrades gracefully to the normal two-tap flow when unsupported.
+  if (navigator.permissions && navigator.permissions.query) {
+    navigator.permissions.query({ name: 'microphone' }).then((status) => {
+      if (status.state === 'granted') {
+        micPrimed = true;
+        setHint('Tap to start recording — up to 2 minutes', false);
+        recBtn.setAttribute('aria-label', 'Start recording');
+      } else if (status.state === 'denied') {
+        setHint(MIC_BLOCKED_MESSAGE, true);
+      }
+    }).catch(() => { /* unsupported query name -- fall back to the tap-to-prime flow */ });
+  }
+
   recBtn.addEventListener('click', async () => {
     if (submitting) return;
     if (mediaRecorder && mediaRecorder.state === 'recording') {
       mediaRecorder.stop();
       return;
     }
+    if (!micPrimed) {
+      await primeMic();
+      return; // this tap only requested permission; the next one records
+    }
     try{
       stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     }catch(err){
-      setHint('Microphone access was blocked — check your browser settings.', true);
+      setHint(MIC_BLOCKED_MESSAGE, true);
       return;
     }
     chunks = [];
