@@ -41,6 +41,21 @@
   meta.textContent = [formatDate(event.date), event.location].filter(Boolean).join(' · ');
   contentEl.appendChild(meta);
 
+  if (event.description) {
+    const descWrap = document.createElement('div');
+    descWrap.className = 'event-description';
+    event.description
+      .split(/\n+/)
+      .map((p) => p.trim())
+      .filter(Boolean)
+      .forEach((para) => {
+        const p = document.createElement('p');
+        p.textContent = para;
+        descWrap.appendChild(p);
+      });
+    contentEl.appendChild(descWrap);
+  }
+
   const audio = document.createElement('audio');
   audio.controls = true;
   audio.preload = 'none';
@@ -72,6 +87,31 @@
         name.className = 'portrait-name';
         name.textContent = p.name;
         card.appendChild(name);
+      }
+
+      if (p.recording || p.transcript) {
+        const links = document.createElement('p');
+        links.className = 'portrait-links';
+        if (p.recording) {
+          const a = document.createElement('a');
+          a.href = p.recording;
+          a.target = '_blank';
+          a.rel = 'noopener';
+          a.textContent = 'Listen';
+          links.appendChild(a);
+        }
+        if (p.recording && p.transcript) {
+          links.appendChild(document.createTextNode(' · '));
+        }
+        if (p.transcript) {
+          const a = document.createElement('a');
+          a.href = p.transcript;
+          a.target = '_blank';
+          a.rel = 'noopener';
+          a.textContent = 'Transcript';
+          links.appendChild(a);
+        }
+        card.appendChild(links);
       }
 
       grid.appendChild(card);

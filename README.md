@@ -206,6 +206,23 @@ portraits with names underneath — driven entirely by that one
 `events-data.js` file via a Netlify redirect (`/events/*` → `/event.html`,
 see `netlify.toml`) so no new static file needs to exist per event.
 
+Two more optional pieces on the same data file:
+
+- **Per-person recording/transcript links** — add `recording` and/or
+  `transcript` to any portrait entry and a small "Listen" / "Transcript"
+  link shows up under their name. For a real event these are just that
+  person's Drive Link and Transcript Link, already sitting in their row on
+  the Sheet — copy them over by hand. (The demo event's "Listen" links
+  point at short extracted highlights rather than the placeholder source
+  recordings, which ran 6-36 minutes each — see `voices/README.md`. A real
+  submission is capped at 2 minutes, so this workaround is demo-only.)
+- **Event description** — a `description` string on the event itself,
+  shown above the audio player. Blank lines become paragraph breaks. This
+  is deliberately just a text field you fill in by hand, not an automated
+  pipeline — the intended flow is an organizer emails you who organized/
+  sponsored/how the night went sometime after the event, and you paste
+  it in, commit, push.
+
 ### One thing to have reviewed before relying on it
 
 The consent checkbox on the recorder was extended to cover public display
