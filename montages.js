@@ -15,7 +15,7 @@
     li.className = 'montage-item';
 
     const link = document.createElement('a');
-    link.href = `events/${ev.slug}`;
+    link.href = `/events/${ev.slug}`;
     link.className = 'montage-link';
 
     const title = document.createElement('h2');

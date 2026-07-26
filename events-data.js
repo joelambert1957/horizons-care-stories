@@ -8,6 +8,14 @@
 //      `slug` becomes that event's URL: /events/<slug>.
 //   4. Commit and push -- Netlify deploys automatically.
 //
+// IMPORTANT: local file paths (audio/photo/recording) must start with a
+// leading `/` (e.g. "/montages/foo.mp3", not "montages/foo.mp3"). event.html
+// is reached at /events/<slug> via a Netlify rewrite that keeps that URL in
+// the address bar while actually serving /event.html -- a relative path
+// resolves against whatever's in the address bar, not the file's real
+// location, so a non-absolute path silently 404s only in production, not
+// when testing event.html directly. Absolute paths work in both.
+//
 // Example:
 // window.EVENTS = [
 //   {
@@ -15,7 +23,7 @@
 //     title: "Economies of Care Dinner — Atlanta, GA",
 //     date: "2026-08-25",
 //     location: "Atlanta, GA",
-//     audio: "montages/2026-08-25-atlanta.mp3",
+//     audio: "/montages/2026-08-25-atlanta.mp3",
 //     // Optional. Plain text, blank lines become paragraph breaks. This is
 //     // the "admin" mechanism for adding event context after the fact --
 //     // an organizer emails you who organized/sponsored/what the night was
@@ -24,14 +32,15 @@
 //     portraits: [
 //       {
 //         name: "Jane D.",
-//         photo: "portraits/2026-08-25-atlanta-jane-d.jpg",
+//         photo: "/portraits/2026-08-25-atlanta-jane-d.jpg",
 //         // Both optional. For a real event these are just that person's
 //         // Drive Link / Transcript Link, already sitting in the Sheet from
-//         // their submission -- copy them over by hand.
+//         // their submission -- copy them over by hand. These two are full
+//         // Drive URLs already, not local paths, so no leading-slash concern.
 //         recording: "https://drive.google.com/file/d/.../view",
 //         transcript: "https://docs.google.com/document/d/.../edit",
 //       },
-//       { name: "Marcus T.", photo: "portraits/2026-08-25-atlanta-marcus-t.jpg" },
+//       { name: "Marcus T.", photo: "/portraits/2026-08-25-atlanta-marcus-t.jpg" },
 //     ],
 //   },
 // ];
@@ -46,7 +55,7 @@ window.EVENTS = [
     title: "Demo Event — Beta Preview",
     date: "2026-07-24",
     location: "Placeholder / beta demo",
-    audio: "montages/2026-demo-beta-preview.mp3",
+    audio: "/montages/2026-demo-beta-preview.mp3",
     description: "This is placeholder text standing in for what a real event description will look like -- organizer, sponsor, and a bit about the evening, sent in after the fact and pasted in here by hand.\n\nFor a real gathering: who organized the table, who (if anyone) sponsored it, and a couple sentences about how the night went, in the organizer's own words where possible.",
     portraits: [
       // Individual "Listen" links point at a short highlight clip, not
@@ -54,16 +63,16 @@ window.EVENTS = [
       // submission) source recordings -- see voices/README.md. No
       // "Transcript" links here since these never went through the real
       // transcription pipeline (that only runs on actual site submissions).
-      { name: "Darla Roach", photo: "portraits/head1.jpg", recording: "voices/darla-roach.mp3" },
-      { name: "Judith", photo: "portraits/head2.jpg", recording: "voices/judith.mp3" },
-      { name: "Jenn", photo: "portraits/head3.jpg", recording: "voices/jenn.mp3" },
-      { name: "John Bercier", photo: "portraits/head4.jpg", recording: "voices/john-bercier.mp3" },
-      { name: "Sean", photo: "portraits/head5.jpg", recording: "voices/sean.mp3" },
-      { name: "Anonymous", photo: "portraits/head6.jpg", recording: "voices/anonymous.mp3" },
-      { name: "Lopez", photo: "portraits/head7.jpg", recording: "voices/lopez.mp3" },
-      { name: "Malcom Davis", photo: "portraits/head8.jpg", recording: "voices/malcom-davis.mp3" },
-      { name: "Karen Rizollo", photo: "portraits/head9.jpg", recording: "voices/karen-rizollo.mp3" },
-      { name: "Letti", photo: "portraits/head10.jpg", recording: "voices/letti.mp3" },
+      { name: "Darla Roach", photo: "/portraits/head1.jpg", recording: "/voices/darla-roach.mp3" },
+      { name: "Judith", photo: "/portraits/head2.jpg", recording: "/voices/judith.mp3" },
+      { name: "Jenn", photo: "/portraits/head3.jpg", recording: "/voices/jenn.mp3" },
+      { name: "John Bercier", photo: "/portraits/head4.jpg", recording: "/voices/john-bercier.mp3" },
+      { name: "Sean", photo: "/portraits/head5.jpg", recording: "/voices/sean.mp3" },
+      { name: "Anonymous", photo: "/portraits/head6.jpg", recording: "/voices/anonymous.mp3" },
+      { name: "Lopez", photo: "/portraits/head7.jpg", recording: "/voices/lopez.mp3" },
+      { name: "Malcom Davis", photo: "/portraits/head8.jpg", recording: "/voices/malcom-davis.mp3" },
+      { name: "Karen Rizollo", photo: "/portraits/head9.jpg", recording: "/voices/karen-rizollo.mp3" },
+      { name: "Letti", photo: "/portraits/head10.jpg", recording: "/voices/letti.mp3" },
     ],
   },
 ];
