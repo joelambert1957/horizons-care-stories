@@ -42,6 +42,8 @@
   const portraitInput = document.getElementById('lystPortrait');
   const portraitHint = document.getElementById('lystPortraitHint');
   const portraitPreview = document.getElementById('lystPortraitPreview');
+  const audioUploadInput = document.getElementById('lystAudioUpload');
+  const uploadHint = document.getElementById('lystUploadHint');
   const form = document.getElementById('lystForm');
   const thankyou = document.getElementById('lystThankyou');
 
@@ -155,6 +157,53 @@
     }, 1000);
   });
 
+  // A File object from <input type="file"> is a Blob subtype, so it slots
+  // straight into recordedBlob/blobToBase64/the submit flow below exactly
+  // like a live recording -- no separate upload code path needed. Browsers
+  // don't always sniff a MIME type for less common phone-recording formats,
+  // so this falls back to guessing from the extension rather than leaving
+  // it blank (which submit-story.js would otherwise default to audio/webm,
+  // wrong for e.g. an .m4a voice memo).
+  const EXTENSION_MIME_FALLBACK = {
+    '.m4a': 'audio/mp4', '.mp3': 'audio/mpeg', '.wav': 'audio/wav',
+    '.ogg': 'audio/ogg', '.webm': 'audio/webm', '.aac': 'audio/aac',
+  };
+  function inferMimeType(file){
+    if (file.type) return file.type;
+    const match = file.name.match(/\.[^.]+$/);
+    const ext = match ? match[0].toLowerCase() : '';
+    return EXTENSION_MIME_FALLBACK[ext] || 'audio/mp4';
+  }
+
+  audioUploadInput.addEventListener('change', () => {
+    const file = audioUploadInput.files[0];
+    uploadHint.textContent = '';
+    if (!file) return;
+
+    if (file.type && !file.type.startsWith('audio/')) {
+      uploadHint.textContent = "That doesn't look like an audio file — try a different one.";
+      uploadHint.classList.add('error');
+      audioUploadInput.value = '';
+      return;
+    }
+    if (file.size > MAX_AUDIO_BYTES) {
+      uploadHint.textContent = 'That file is too large to upload — try a shorter recording, under 4MB.';
+      uploadHint.classList.add('error');
+      audioUploadInput.value = '';
+      return;
+    }
+
+    // An uploaded file replaces whatever was live-recorded, and vice versa
+    // -- whichever happened most recently wins, same variable either way.
+    if (mediaRecorder && mediaRecorder.state === 'recording') mediaRecorder.stop();
+    recordedBlob = file;
+    recordedBlob.__uploadedMimeType = inferMimeType(file);
+    playback.src = URL.createObjectURL(file);
+    playback.style.display = 'block';
+    setHint('Using your uploaded file — listen back below, or record/upload again to replace it.', false);
+    updateSubmitState();
+  });
+
   function blobToBase64(blob){
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -249,7 +298,7 @@
       const audioBase64 = await blobToBase64(recordedBlob);
       const payload = {
         audioBase64,
-        mimeType: recordedBlob.type || 'audio/webm',
+        mimeType: recordedBlob.__uploadedMimeType || recordedBlob.type || 'audio/webm',
         name: nameInput.value.trim(),
         city: cityInput.value.trim(),
         eventName: eventInput.value.trim(),

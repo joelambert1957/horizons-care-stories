@@ -153,6 +153,35 @@ html, body {
   border-radius: 20px;
 }
 
+.lyst-wrap .upload-alt{
+  width: 100%;
+  max-width: 340px;
+  margin: 1.75rem auto 0;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--line);
+  text-align: center;
+}
+.lyst-wrap .upload-alt-divider{
+  display: block;
+  font-family:'IBM Plex Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 0.75rem;
+}
+.lyst-wrap .upload-alt label{
+  display: block;
+  font-size: 13px;
+  color: var(--cream-dim);
+  margin-bottom: 0.5rem;
+}
+.lyst-wrap .upload-alt input[type="file"]{
+  color: var(--cream-dim);
+  font-family:'Karla', sans-serif;
+  font-size: 13px;
+}
+
 .lyst-wrap .card{
   background: var(--card);
   border: 1px solid var(--line);

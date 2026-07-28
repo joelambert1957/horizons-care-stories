@@ -15,8 +15,12 @@ const EXTENSION_BY_MIME = {
   'audio/webm': 'webm',
   'audio/ogg': 'ogg',
   'audio/mp4': 'm4a',
+  'audio/x-m4a': 'm4a',
   'audio/mpeg': 'mp3',
-  'audio/wav': 'wav'
+  'audio/wav': 'wav',
+  'audio/aac': 'aac',
+  'audio/x-wav': 'wav',
+  'audio/3gpp': '3gp'
 };
 
 const EXTENSION_BY_IMAGE_MIME = {

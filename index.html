@@ -41,6 +41,13 @@
     <div class="hint" id="lystHint">Tap to get your microphone ready</div>
     <a class="howto-link" id="lystHowto" href="Horizons_Recording_HowTo_Guide.pdf" target="_blank" rel="noopener">Trouble with your microphone? See the how-to guide &rarr;</a>
     <audio id="lystPlayback" controls style="display:none;"></audio>
+
+    <div class="upload-alt">
+      <span class="upload-alt-divider">or</span>
+      <label for="lystAudioUpload">Upload a recording from your device <span style="color:var(--muted)">(e.g. a phone voice memo)</span></label>
+      <input type="file" accept="audio/*" id="lystAudioUpload">
+      <span class="hint" id="lystUploadHint"></span>
+    </div>
   </div>
 
   <form id="lystForm">
