@@ -59,10 +59,13 @@ This starts a local server, prints a Google consent URL to open in your
 browser, and once you approve access it prints the refresh token to your
 terminal. Copy it straight from there into Netlify — it's a long-lived
 credential, equivalent to a password for that Google account's Drive/Sheets
-**and Vertex AI** access (see **Automatic transcription** below), so treat
-it accordingly (don't paste it into chat, tickets, etc.).
+access, so treat it accordingly (don't paste it into chat, tickets, etc.).
 The OAuth client's **Authorized redirect URIs** (in Cloud Console) must
 include `http://localhost:3000/oauth2callback` for this to work.
+
+(Transcription uses a *separate* refresh token with its own generation
+script — see **Automatic transcription** below — deliberately not the same
+one this section produces.)
 
 ### Setting variables in Netlify
 
@@ -104,16 +107,31 @@ automatically on the next run; there's currently no give-up/error state for
 a row that fails permanently, worth revisiting once this has run for a
 while.
 
-Transcription reuses the **same OAuth credentials as Drive/Sheets**
-(`GOOGLE_OAUTH_CLIENT_ID/SECRET/REFRESH_TOKEN`) rather than a dedicated
-service account — org policy blocks creating service account keys, so
-instead it authenticates to Vertex AI as the same user
-(`joe@storyhost.net`) via google-auth-library's `authorized_user`
-credential type (the same mechanism `gcloud auth application-default
-login` uses). That means the refresh token needs to carry the
-`cloud-platform` scope in addition to Drive/Sheets, and that Google account
-needs the `Vertex AI User` IAM role granted directly on the GCP project
-(not a service account role).
+Transcription authenticates to Vertex AI as the same user
+(`joe@storyhost.net`) rather than a dedicated service account — org policy
+blocks creating service account keys, so it uses google-auth-library's
+`authorized_user` credential type instead (the same mechanism `gcloud auth
+application-default login` uses). That Google account needs the
+`Vertex AI User` IAM role granted directly on the GCP project (not a
+service account role).
+
+**It has its own refresh token (`GOOGLE_VERTEX_REFRESH_TOKEN`), deliberately
+separate from `GOOGLE_OAUTH_REFRESH_TOKEN`.** They used to be the same
+token, scoped to Drive/Sheets *and* cloud-platform together. `cloud-platform`
+is a broad, sensitive scope subject to periodic Google-enforced
+reauthentication (`invalid_rapt` errors) — and when that requirement
+triggered, it invalidated the *whole* token, not just the Vertex AI part,
+which broke real story submissions along with transcription. Splitting them
+means a `cloud-platform` reauth cycle now only pauses transcription (rows
+just wait for the next successful run, nothing is lost) instead of taking
+the live submission path down with it. Both tokens are issued from the same
+OAuth client (`GOOGLE_OAUTH_CLIENT_ID`/`SECRET` are shared) — just two
+independent authorization grants, not two separate apps to manage.
+
+If `GOOGLE_VERTEX_REFRESH_TOKEN` itself needs reauth again in the future —
+plausible, if this is a Workspace session-control policy — only
+`transcribe-stories.js` needs fixing (repeat the setup below), and
+submissions keep working the whole time.
 
 ### One-time setup
 
@@ -122,18 +140,13 @@ needs the `Vertex AI User` IAM role granted directly on the GCP project
 2. **Grant `joe@storyhost.net` the "Vertex AI User" IAM role** on the GCP
    project — Cloud Console → IAM & Admin → IAM → Grant Access → enter that
    account → select the `Vertex AI User` role.
-3. **Regenerate the OAuth refresh token** — `scripts/get-refresh-token.js`
-   now requests the `cloud-platform` scope alongside the existing Drive/
-   Sheets scopes, so the token in production needs to be replaced with a
-   freshly-generated one (the old one won't have Vertex AI access). Same
-   command as before:
+3. **Generate the Vertex-only refresh token**:
    ```bash
-   GOOGLE_OAUTH_CLIENT_ID="..." GOOGLE_OAUTH_CLIENT_SECRET="..." node scripts/get-refresh-token.js
+   GOOGLE_OAUTH_CLIENT_ID="..." GOOGLE_OAUTH_CLIENT_SECRET="..." node scripts/get-vertex-refresh-token.js
    ```
-   Update `GOOGLE_OAUTH_REFRESH_TOKEN` in Netlify with the new value — this
-   is the **one required step that affects the already-live
-   `submit-story.js`** too (it uses the same variable), though nothing
-   about its behavior changes, just which token it holds.
+   Set the result as `GOOGLE_VERTEX_REFRESH_TOKEN` in Netlify — this is
+   separate from (and doesn't touch) `GOOGLE_OAUTH_REFRESH_TOKEN`, so
+   `submit-story.js` is unaffected by this step.
 4. **Create a "Transcripts" folder** in Drive and share it as **Editor**
    with that same account. Its ID becomes `GOOGLE_TRANSCRIPTS_FOLDER_ID`.
 5. **Add two headers to the submissions Sheet**, by hand: `Transcribed` in
@@ -142,13 +155,12 @@ needs the `Vertex AI User` IAM role granted directly on the GCP project
 
 ### Environment variables
 
-Only these three are new — everything else transcription needs
-(`GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET`,
-`GOOGLE_OAUTH_REFRESH_TOKEN`, `GOOGLE_SHEET_ID`) is already set from the
-Drive/Sheets setup above.
+`GOOGLE_OAUTH_CLIENT_ID`/`GOOGLE_OAUTH_CLIENT_SECRET` are shared with the
+Drive/Sheets setup above; everything else here is specific to transcription.
 
 | Variable | Description |
 |---|---|
+| `GOOGLE_VERTEX_REFRESH_TOKEN` | The Vertex-AI-only refresh token from step 3 above. **Not** the same value as `GOOGLE_OAUTH_REFRESH_TOKEN`. |
 | `GOOGLE_TRANSCRIPTS_FOLDER_ID` | Drive folder ID that finished `.docx` transcripts get uploaded to. |
 | `GOOGLE_CLOUD_PROJECT_ID` | The GCP project ID (not the numeric project number) that has Vertex AI enabled. |
 | `GOOGLE_CLOUD_LOCATION` | Vertex AI region. Defaults to `us-central1` if unset. |

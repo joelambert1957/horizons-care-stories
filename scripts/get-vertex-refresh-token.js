@@ -2,10 +2,21 @@ const http = require('http');
 const { URL } = require('url');
 const { google } = require('googleapis');
 
-// Read from the environment rather than hardcoding here — this file is
-// tracked in a public repo, and the client secret must never end up in it.
+// Generates a refresh token scoped ONLY to cloud-platform (Vertex AI),
+// completely separate from the drive.file/spreadsheets token
+// get-refresh-token.js produces. Kept isolated deliberately: cloud-platform
+// is a broad/sensitive scope whose periodic reauth requirement was
+// previously taking down the shared token entirely -- including real
+// story submissions, which have nothing to do with transcription. With
+// this split, that reauth cycle only pauses transcribe-stories.js (rows
+// just wait, nothing is lost) instead of breaking submit-story.js too.
+//
+// Uses the same OAuth client as get-refresh-token.js (no new client
+// needed) -- just a separate authorization grant, so it's an independent,
+// separately-revocable token even though the client_id is shared.
+//
 // Run as:
-//   GOOGLE_OAUTH_CLIENT_ID=... GOOGLE_OAUTH_CLIENT_SECRET=... node scripts/get-refresh-token.js
+//   GOOGLE_OAUTH_CLIENT_ID=... GOOGLE_OAUTH_CLIENT_SECRET=... node scripts/get-vertex-refresh-token.js
 const CLIENT_ID = process.env.GOOGLE_OAUTH_CLIENT_ID;
 const CLIENT_SECRET = process.env.GOOGLE_OAUTH_CLIENT_SECRET;
 const REDIRECT_URI = 'http://localhost:3000/oauth2callback';
@@ -14,27 +25,20 @@ if (!CLIENT_ID || !CLIENT_SECRET) {
   console.error(
     'Missing GOOGLE_OAUTH_CLIENT_ID and/or GOOGLE_OAUTH_CLIENT_SECRET.\n' +
     'Run this script as:\n' +
-    '  GOOGLE_OAUTH_CLIENT_ID=... GOOGLE_OAUTH_CLIENT_SECRET=... node scripts/get-refresh-token.js'
+    '  GOOGLE_OAUTH_CLIENT_ID=... GOOGLE_OAUTH_CLIENT_SECRET=... node scripts/get-vertex-refresh-token.js'
   );
   process.exit(1);
 }
 
 const oauth2Client = new google.auth.OAuth2(CLIENT_ID, CLIENT_SECRET, REDIRECT_URI);
 
-// Deliberately just these two -- this token is what submit-story.js depends
-// on for every real submission. cloud-platform (Vertex AI) used to be
-// bundled in here too, but that scope's sensitivity-driven reauth
-// requirement was taking the whole token down with it, breaking real
-// submissions whenever it triggered. See scripts/get-vertex-refresh-token.js
-// for the separate, isolated token transcribe-stories.js uses instead.
 const SCOPES = [
-  'https://www.googleapis.com/auth/drive.file',
-  'https://www.googleapis.com/auth/spreadsheets',
+  'https://www.googleapis.com/auth/cloud-platform',
 ];
 
 const authUrl = oauth2Client.generateAuthUrl({
-  access_type: 'offline',   // required to get a refresh token back
-  prompt: 'consent',        // forces Google to actually issue a refresh token, even if you've authorized before
+  access_type: 'offline',
+  prompt: 'consent',
   scope: SCOPES,
 });
 
@@ -51,9 +55,9 @@ const server = http.createServer(async (req, res) => {
     server.close();
 
     const { tokens } = await oauth2Client.getToken(code);
-    console.log('\n=== SAVE THIS REFRESH TOKEN ===\n');
+    console.log('\n=== SAVE THIS AS GOOGLE_VERTEX_REFRESH_TOKEN ===\n');
     console.log(tokens.refresh_token);
-    console.log('\n===============================\n');
+    console.log('\n==================================================\n');
 
     if (!tokens.refresh_token) {
       console.log(
