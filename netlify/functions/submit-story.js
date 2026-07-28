@@ -4,7 +4,7 @@ const { Readable } = require('stream');
 // Keep in sync with the client-side cap in app.js (MAX_AUDIO_BYTES). This is
 // a server-side backstop, not the primary guard — the browser should never
 // send more than this in normal operation.
-const MAX_AUDIO_BYTES = 4 * 1024 * 1024; // 4MB raw
+const MAX_AUDIO_BYTES = 4.3 * 1024 * 1024; // 4.3MB raw
 
 // Portraits are compressed client-side to a small thumbnail before they
 // ever reach this function (see PORTRAIT_* constants in app.js), so this is

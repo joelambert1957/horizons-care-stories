@@ -1,15 +1,24 @@
 (function(){
-  // Netlify Functions cap synchronous request bodies at ~6MB. Base64 adds ~33%
-  // overhead, so we cap the raw recording well below that to leave headroom
-  // for the JSON wrapper. A 2-minute voice recording is normally 0.5-2MB.
-  const MAX_AUDIO_BYTES = 4 * 1024 * 1024; // 4MB raw -> ~5.3MB base64
+  // Netlify Functions cap a synchronous request body at 6,291,456 bytes (6
+  // MiB) -- a hard AWS Lambda platform limit, not adjustable. Base64 adds
+  // ~33% overhead: 4.3MB raw -> ~5.73MB base64 for audio alone. Sized to
+  // comfortably cover a real ~2:30 voice memo (~4.2MB at typical AAC/M4A
+  // bitrates) with margin, at the cost of a narrow edge case noted below.
+  const MAX_AUDIO_BYTES = 4.3 * 1024 * 1024; // 4.3MB raw -> ~5.73MB base64
 
-  // A portrait rides in the same request as the audio, and Netlify caps a
-  // synchronous function's whole request body around 6MB -- audio alone can
-  // already use ~5.3MB of that. So instead of a size cap on the original
-  // photo (which could be several MB straight off a phone), it's always
-  // compressed down to a small thumbnail client-side first. Good enough for
-  // a name-card-sized headshot, comfortably small regardless of source.
+  // A portrait can ride in the same request as the audio. Compressed to a
+  // small thumbnail client-side either way (good enough for a name-card
+  // headshot regardless of source), but worth being honest about the
+  // arithmetic: audio at its 4.3MB ceiling (~5.73MB base64) plus a portrait
+  // that happens to hit its rare 400KB HARD_CAP (~546KB base64) totals
+  // ~6.28MB base64 -- over the 6.29MB... actually just under it alone, but
+  // add ~5-10KB of other form fields (name/city/timestamp/JSON) and it can
+  // tip over. That needs BOTH edges hit at once (near-max audio *and* a
+  // portrait rare enough to need its hard cap, not its normal ~220KB
+  // target) -- unlikely, and if it happens the failure is a normal "please
+  // try again" retry, not lost data. Making this bulletproof would mean
+  // capping portraits at ~205KB, below their current target quality, which
+  // isn't worth it for an edge case this narrow.
   const PORTRAIT_MAX_DIMENSION = 480;
   const PORTRAIT_TARGET_BYTES = 220 * 1024;
   const PORTRAIT_HARD_CAP_BYTES = 400 * 1024;
@@ -187,7 +196,7 @@
       return;
     }
     if (file.size > MAX_AUDIO_BYTES) {
-      uploadHint.textContent = 'That file is too large to upload — try a shorter recording, under 4MB.';
+      uploadHint.textContent = 'That file is too large to upload — try a shorter recording, under 4.3MB (roughly 2.5 minutes).';
       uploadHint.classList.add('error');
       audioUploadInput.value = '';
       return;
