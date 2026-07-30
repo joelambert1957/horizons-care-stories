@@ -75,4 +75,45 @@ window.EVENTS = [
       { name: "Carroll", photo: "/portraits/carroll.jpg", recording: "/voices/carroll.mp3" },
     ],
   },
+  {
+    slug: "story-beta-test",
+    title: "Story Beta Test",
+    date: "2026-07-30",
+    location: "Multiple locations",
+    audio: "/montages/story-beta-test.mp3",
+    description: "The first real test of the story recorder, open to anyone willing to try it before a wider launch. Six people recorded or uploaded a story over a few days in late July 2026, from Williamsburg, VA to Bellingham, WA to Santa Fe, NM. Thank you to everyone who took the time to share.",
+    portraits: [
+      {
+        name: "Patricia Liehr",
+        photo: "/portraits/patricia-liehr.jpg",
+        recording: "https://drive.google.com/file/d/1JhLJKWaN9U2o1sppSt4soXRmpPhCyNF6/view?usp=drivesdk",
+        transcript: "https://docs.google.com/document/d/1JhrvzpGjy0mo3QhwANIBqHc8TNKPhBJX/edit?usp=drivesdk&ouid=112378949695401561938&rtpof=true&sd=true",
+      },
+      {
+        name: "Monica Koller",
+        photo: "/portraits/monica-koller.jpg",
+        recording: "https://drive.google.com/file/d/1OOjjaa3gLwaEvkODrUt58x7utELF568x/view?usp=drivesdk",
+      },
+      {
+        name: "Jode",
+        photo: "/portraits/jode.jpg",
+        recording: "https://drive.google.com/file/d/1887e1TqH9neY6D86I1qTQo3xDeDwjMP3/view?usp=drivesdk",
+      },
+      {
+        name: "Jamie D.",
+        photo: "/portraits/jamie-d.jpg",
+        recording: "https://drive.google.com/file/d/10Hwi6899JQB0vlBxg9wWVXFWbBmuW9Mq/view?usp=drivesdk",
+      },
+      {
+        name: "Pat",
+        photo: "/portraits/placeholder-generic.svg",
+        recording: "https://drive.google.com/file/d/1TYm9T3HSU0Pe6pSX9jiPJLBlOZ2Vaoya/view?usp=drivesdk",
+      },
+      {
+        name: "Pat",
+        photo: "/portraits/placeholder-generic.svg",
+        recording: "https://drive.google.com/file/d/1dlD84GdS5i5R44ipT6O6K0DU-10tTKVo/view?usp=drivesdk",
+      },
+    ],
+  },
 ];
