@@ -105,14 +105,9 @@ window.EVENTS = [
         recording: "https://drive.google.com/file/d/10Hwi6899JQB0vlBxg9wWVXFWbBmuW9Mq/view?usp=drivesdk",
       },
       {
-        name: "Pat",
+        name: "Judy G.",
         photo: "/portraits/placeholder-generic.svg",
         recording: "https://drive.google.com/file/d/1TYm9T3HSU0Pe6pSX9jiPJLBlOZ2Vaoya/view?usp=drivesdk",
-      },
-      {
-        name: "Pat",
-        photo: "/portraits/placeholder-generic.svg",
-        recording: "https://drive.google.com/file/d/1dlD84GdS5i5R44ipT6O6K0DU-10tTKVo/view?usp=drivesdk",
       },
     ],
   },
