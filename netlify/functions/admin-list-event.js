@@ -5,6 +5,8 @@
 // shortly after use, not left running indefinitely.
 //
 // Call as: /.netlify/functions/admin-list-event?event=Story%20Beta%20Test
+// Or to download a file by its Drive ID (base64 in the JSON response):
+//   /.netlify/functions/admin-list-event?action=download&id=<fileId>
 const { google } = require('googleapis');
 
 const SHEET_RANGE = 'Sheet1!A2:I';
@@ -19,7 +21,26 @@ function getAuth() {
 }
 
 exports.handler = async (event) => {
-  const targetEvent = (event.queryStringParameters || {}).event;
+  const params = event.queryStringParameters || {};
+
+  if (params.action === 'download') {
+    if (!params.id) {
+      return { statusCode: 400, body: JSON.stringify({ error: 'Missing ?id= query param.' }) };
+    }
+    const drive = google.drive({ version: 'v3', auth: getAuth() });
+    const meta = await drive.files.get({ fileId: params.id, fields: 'id, name, mimeType' });
+    const content = await drive.files.get({ fileId: params.id, alt: 'media' }, { responseType: 'arraybuffer' });
+    return {
+      statusCode: 200,
+      body: JSON.stringify({
+        name: meta.data.name,
+        mimeType: meta.data.mimeType,
+        base64: Buffer.from(content.data).toString('base64'),
+      }),
+    };
+  }
+
+  const targetEvent = params.event;
   if (!targetEvent) {
     return { statusCode: 400, body: JSON.stringify({ error: 'Missing ?event= query param.' }) };
   }
