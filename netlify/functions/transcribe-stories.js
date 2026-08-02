@@ -2,6 +2,7 @@ const { schedule } = require('@netlify/functions');
 const { google } = require('googleapis');
 const { VertexAI } = require('@google-cloud/vertexai');
 const { Document, Packer, Paragraph, TextRun, HeadingLevel } = require('docx');
+const { getOverrideToken } = require('./lib/token-store');
 
 // How many not-yet-transcribed rows to process in a single run. Kept small
 // so one run finishes comfortably within the function's execution window --
@@ -23,10 +24,13 @@ Do not summarize, paraphrase, correct grammar, or omit anything -- including fil
 Use standard punctuation and paragraph breaks for readability, but do not alter or add to the actual words spoken.
 Output ONLY the transcript text, with no preamble, labels, or commentary.`;
 
-function getDriveAuth() {
+// Checks for a token written by an /admin reconnect (see
+// netlify/functions/lib/token-store.js) before falling back to the env var
+// -- lets a reconnect take effect immediately, with no redeploy needed.
+async function getDriveAuth() {
   const clientId = process.env.GOOGLE_OAUTH_CLIENT_ID;
   const clientSecret = process.env.GOOGLE_OAUTH_CLIENT_SECRET;
-  const refreshToken = process.env.GOOGLE_OAUTH_REFRESH_TOKEN;
+  const refreshToken = (await getOverrideToken('submission')) || process.env.GOOGLE_OAUTH_REFRESH_TOKEN;
   if (!clientId || !clientSecret || !refreshToken) {
     throw new Error('Missing Google OAuth credentials (GOOGLE_OAUTH_CLIENT_ID/SECRET/REFRESH_TOKEN).');
   }
@@ -47,13 +51,13 @@ function getDriveAuth() {
 // blocks creating those keys), reusing the same OAuth client_id/secret,
 // just a separate authorization grant. That Google account needs the
 // Vertex AI User IAM role granted on the GCP project (Cloud Console -> IAM).
-function getVertexModel() {
+async function getVertexModel() {
   const project = process.env.GOOGLE_CLOUD_PROJECT_ID;
   const location = process.env.GOOGLE_CLOUD_LOCATION || 'us-central1';
   const modelName = process.env.GOOGLE_VERTEX_MODEL || 'gemini-2.5-flash';
   const clientId = process.env.GOOGLE_OAUTH_CLIENT_ID;
   const clientSecret = process.env.GOOGLE_OAUTH_CLIENT_SECRET;
-  const refreshToken = process.env.GOOGLE_VERTEX_REFRESH_TOKEN;
+  const refreshToken = (await getOverrideToken('vertex')) || process.env.GOOGLE_VERTEX_REFRESH_TOKEN;
   if (!project || !clientId || !clientSecret || !refreshToken) {
     throw new Error('Missing Vertex AI configuration (GOOGLE_CLOUD_PROJECT_ID, GOOGLE_OAUTH_CLIENT_ID/SECRET, or GOOGLE_VERTEX_REFRESH_TOKEN).');
   }
@@ -168,10 +172,10 @@ const runTranscription = async () => {
     return { statusCode: 500 };
   }
 
-  const driveAuth = getDriveAuth();
+  const driveAuth = await getDriveAuth();
   const drive = google.drive({ version: 'v3', auth: driveAuth });
   const sheets = google.sheets({ version: 'v4', auth: driveAuth });
-  const model = getVertexModel();
+  const model = await getVertexModel();
 
   const { data } = await sheets.spreadsheets.values.get({ spreadsheetId: sheetId, range: SHEET_READ_RANGE });
   const rows = data.values || [];

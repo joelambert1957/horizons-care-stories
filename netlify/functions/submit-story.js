@@ -1,5 +1,6 @@
 const { google } = require('googleapis');
 const { Readable } = require('stream');
+const { getOverrideToken } = require('./lib/token-store');
 
 // Keep in sync with the client-side cap in app.js (MAX_AUDIO_BYTES). This is
 // a server-side backstop, not the primary guard — the browser should never
@@ -29,10 +30,13 @@ const EXTENSION_BY_IMAGE_MIME = {
   'image/webp': 'webp'
 };
 
-function getAuth() {
+// Checks for a token written by an /admin reconnect (see
+// netlify/functions/lib/token-store.js) before falling back to the env var
+// -- lets a reconnect take effect immediately, with no redeploy needed.
+async function getAuth() {
   const clientId = process.env.GOOGLE_OAUTH_CLIENT_ID;
   const clientSecret = process.env.GOOGLE_OAUTH_CLIENT_SECRET;
-  const refreshToken = process.env.GOOGLE_OAUTH_REFRESH_TOKEN;
+  const refreshToken = (await getOverrideToken('submission')) || process.env.GOOGLE_OAUTH_REFRESH_TOKEN;
   if (!clientId || !clientSecret || !refreshToken) {
     throw new Error('Missing Google OAuth credentials.');
   }
@@ -96,7 +100,7 @@ exports.handler = async (event) => {
 
   let auth;
   try {
-    auth = getAuth();
+    auth = await getAuth();
   } catch (err) {
     console.error(err);
     return { statusCode: 500, body: JSON.stringify({ error: 'Server is not configured correctly.' }) };

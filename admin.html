@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Horizon's Project — Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,400;0,500;1,400&family=Karla:wght@400;600&family=IBM+Plex+Mono:wght@400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/style.css">
+<style>
+  .admin-wrap { max-width: 640px; }
+  #adminLogin, #adminPanel { display: none; }
+  #adminLogin.show, #adminPanel.show { display: block; }
+  .admin-row {
+    display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+    padding: 1rem 1.1rem; border: 1px solid var(--line); border-radius: 10px;
+    background: var(--card); margin-bottom: 0.9rem;
+  }
+  .admin-row-main { min-width: 0; }
+  .admin-row-label { font-weight: 600; color: var(--cream); }
+  .admin-row-detail { font-family: 'IBM Plex Mono', monospace; font-size: 12.5px; color: var(--muted); margin-top: 0.3rem; word-break: break-word; }
+  .admin-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 0.5rem; flex-shrink: 0; }
+  .admin-dot.ok { background: #6FA96A; }
+  .admin-dot.bad { background: var(--error); }
+  .admin-dot.pending { background: var(--muted); }
+  button.admin-btn {
+    font-family: 'Karla', sans-serif; font-weight: 600; font-size: 14px;
+    background: var(--amber); color: #1E1712; border: none; border-radius: 8px;
+    padding: 0.6rem 1rem; cursor: pointer; flex-shrink: 0;
+  }
+  button.admin-btn:disabled { opacity: 0.5; cursor: default; }
+  input.admin-input {
+    width: 100%; font-family: 'Karla', sans-serif; font-size: 15px;
+    background: var(--card); border: 1px solid var(--line); border-radius: 8px;
+    color: var(--cream); padding: 0.7rem 0.9rem; margin: 0.8rem 0;
+  }
+  #loginError { color: var(--error); font-size: 14px; display: none; }
+</style>
+</head>
+<body>
+
+<div class="lyst-wrap admin-wrap">
+<div class="lyst-inner">
+
+  <p class="eyebrow">Horizon's Project — Admin</p>
+  <h1 style="font-size: 1.8rem;">Connection health</h1>
+
+  <div id="adminLogin">
+    <p>Enter the admin password to continue.</p>
+    <input type="password" id="passwordInput" class="admin-input" placeholder="Password" autocomplete="off">
+    <button class="admin-btn" id="loginBtn">Log in</button>
+    <p id="loginError">Incorrect password.</p>
+  </div>
+
+  <div id="adminPanel">
+    <div id="rowSubmission" class="admin-row">
+      <div class="admin-row-main">
+        <div><span class="admin-dot pending"></span><span class="admin-row-label">Submission (Drive/Sheets)</span></div>
+        <div class="admin-row-detail">Checking…</div>
+      </div>
+      <button class="admin-btn" data-which="submission">Reconnect</button>
+    </div>
+    <div id="rowVertex" class="admin-row">
+      <div class="admin-row-main">
+        <div><span class="admin-dot pending"></span><span class="admin-row-label">Transcription (Vertex AI)</span></div>
+        <div class="admin-row-detail">Checking…</div>
+      </div>
+      <button class="admin-btn" data-which="vertex">Reconnect</button>
+    </div>
+    <p style="color: var(--muted); font-size: 13.5px;">Reconnecting opens Google's sign-in in a new tab. Log in as
+      <strong>joe@storyhost.net</strong> and approve access — this page updates on its own once it's done.</p>
+  </div>
+
+</div>
+</div>
+
+<script src="/admin.js"></script>
+</body>
+</html>

@@ -43,6 +43,7 @@ Set these in **Netlify → Site configuration → Environment variables** (or vi
 | `GOOGLE_DRIVE_FOLDER_ID` | The ID of the Drive folder recordings should be uploaded into (the long ID segment in the folder's URL). Must belong to (or be shared as **Editor** with) the account the refresh token was issued for. |
 | `GOOGLE_SHEET_ID` | The ID of the Google Sheet to log submissions to (the long ID segment in the sheet's URL). Must also be accessible to that same account. Rows are appended to the `Sheet1` tab in columns A–I (timestamp, name, city, consent, Drive link, Transcribed, Transcript Link, Event Name, Portrait Link) — row 1 must be real headers, and that tab must exist. |
 | `GOOGLE_PORTRAITS_FOLDER_ID` | The ID of the Drive folder portrait photos get uploaded into. Same sharing requirement as the recordings folder. Optional in the sense that submissions without a photo don't need it, but any submission that *does* include one will fail gracefully (story still saves, photo just doesn't upload) if this isn't set. |
+| `ADMIN_PASSWORD` | Gates `/admin` (see **Admin page** below). Pick anything reasonably long; mark it **sensitive** in Netlify. |
 
 Setting up the Google Cloud project itself (creating the OAuth client,
 enabling the Drive and Sheets APIs) is being handled separately.
@@ -81,6 +82,50 @@ netlify env:set GOOGLE_SHEET_ID "1AbCdeFGhIJkLmNoPQRstuVWxyz"
 
 Or in the Netlify UI: **Site configuration → Environment variables → Add a
 variable**, one per row above.
+
+## Admin page
+
+`/admin` is a small, unlisted, password-gated page (not linked from
+anywhere in the site nav) for one job: showing whether the two OAuth
+refresh tokens below are alive, and reconnecting either one in a couple of
+clicks if not — no terminal, no copy-pasting secrets, no manual redeploy.
+
+Both refresh tokens have died and needed manual recovery more than once
+(see **Automatic transcription** below), and the old fix was: run a local
+script, copy a printed token, `netlify env:set` it, then trigger a redeploy.
+`/admin` replaces all of that.
+
+**How reconnecting works**: clicking "Reconnect" opens Google's consent
+screen in a new tab (log in as `joe@storyhost.net` and approve). The
+resulting refresh token is written to **Netlify Blobs** (`@netlify/blobs`,
+a first-party key/value store functions get scoped access to automatically
+— no extra credential needed, unlike the Netlify API, which would require
+an account-wide Personal Access Token). `submit-story.js` and
+`transcribe-stories.js` both check Blobs for a reconnected token first,
+falling back to the env var if none exists — so a reconnect takes effect
+on the *very next* submission or transcription run, no redeploy required.
+
+The env var stays the durable baseline; Blobs holds the live override. If
+you reconnect a token, it's worth eventually copying the new value into the
+matching env var by hand too (`netlify env:set GOOGLE_OAUTH_REFRESH_TOKEN
+"..."` / `GOOGLE_VERTEX_REFRESH_TOKEN`) so the baseline doesn't go stale —
+not required for reconnects to keep working, just good hygiene.
+
+### One-time setup
+
+1. Set `ADMIN_PASSWORD` (see the table above).
+2. Add a new **Authorized redirect URI** to the existing "Story Intake CLI"
+   OAuth client in Google Cloud Console → APIs & Services → Credentials:
+   ```
+   https://horizons-care-stories.netlify.app/.netlify/functions/admin-oauth-callback
+   ```
+   (This is in addition to the existing `http://localhost:3000/oauth2callback`
+   entry the local scripts below still use — don't remove that one.)
+
+The local scripts (`scripts/get-refresh-token.js` /
+`scripts/get-vertex-refresh-token.js`) still work exactly as before and
+remain the documented fallback — useful for first bootstrapping
+`ADMIN_PASSWORD` itself, or if `/admin` is ever unreachable for some reason.
 
 ## Automatic transcription
 
@@ -130,8 +175,10 @@ independent authorization grants, not two separate apps to manage.
 
 If `GOOGLE_VERTEX_REFRESH_TOKEN` itself needs reauth again in the future —
 plausible, if this is a Workspace session-control policy — only
-`transcribe-stories.js` needs fixing (repeat the setup below), and
-submissions keep working the whole time.
+`transcribe-stories.js` needs fixing, and submissions keep working the
+whole time. Use **`/admin`** to reconnect it (see **Admin page** above) —
+the one-time setup below is only needed once, to create the token the
+first time.
 
 ### One-time setup
 
