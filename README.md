@@ -44,6 +44,8 @@ Set these in **Netlify → Site configuration → Environment variables** (or vi
 | `GOOGLE_SHEET_ID` | The ID of the Google Sheet to log submissions to (the long ID segment in the sheet's URL). Must also be accessible to that same account. Rows are appended to the `Sheet1` tab in columns A–I (timestamp, name, city, consent, Drive link, Transcribed, Transcript Link, Event Name, Portrait Link) — row 1 must be real headers, and that tab must exist. |
 | `GOOGLE_PORTRAITS_FOLDER_ID` | The ID of the Drive folder portrait photos get uploaded into. Same sharing requirement as the recordings folder. Optional in the sense that submissions without a photo don't need it, but any submission that *does* include one will fail gracefully (story still saves, photo just doesn't upload) if this isn't set. |
 | `ADMIN_PASSWORD` | Gates `/admin` (see **Admin page** below). Pick anything reasonably long; mark it **sensitive** in Netlify. |
+| `GOOGLE_ADMIN_OAUTH_CLIENT_ID` | Client ID of the separate **Web application** type OAuth client `/admin`'s reconnect flow uses — see **Admin page** below for why this can't be the same "Story Intake CLI" client the other vars use. |
+| `GOOGLE_ADMIN_OAUTH_CLIENT_SECRET` | The matching secret for the client above. |
 
 Setting up the Google Cloud project itself (creating the OAuth client,
 enabling the Drive and Sheets APIs) is being handled separately.
@@ -111,16 +113,41 @@ matching env var by hand too (`netlify env:set GOOGLE_OAUTH_REFRESH_TOKEN
 "..."` / `GOOGLE_VERTEX_REFRESH_TOKEN`) so the baseline doesn't go stale —
 not required for reconnects to keep working, just good hygiene.
 
+**A reconnected token belongs to a different OAuth client than the env-var
+ones.** The existing "Story Intake CLI" client is a **Desktop app** type,
+which Google restricts to the `localhost` loopback redirect — it has no
+"Authorized redirect URIs" field at all in Cloud Console, so it can't be
+pointed at a production callback URL. `/admin` needs its own **Web
+application** type client for that reason, with its own Client ID/Secret
+(`GOOGLE_ADMIN_OAUTH_CLIENT_ID`/`SECRET`). A refresh token only ever
+refreshes against the client that issued it, so
+`netlify/functions/lib/token-store.js`'s `getActiveCredentials()` picks the
+right client_id/secret pair depending on whether the active token is a
+reconnected one or the original env-var one — this is transparent to
+everything downstream of it.
+
 ### One-time setup
 
 1. Set `ADMIN_PASSWORD` (see the table above).
-2. Add a new **Authorized redirect URI** to the existing "Story Intake CLI"
-   OAuth client in Google Cloud Console → APIs & Services → Credentials:
+2. Create a new OAuth client in Google Cloud Console → APIs & Services →
+   Credentials → **Create Credentials → OAuth client ID**:
+   - **Application type**: Web application
+   - **Name**: "Story Intake Admin" (or anything — it's just a label)
+   - **Authorized redirect URIs** → Add URI:
+     ```
+     https://horizons-care-stories.netlify.app/.netlify/functions/admin-oauth-callback
+     ```
+   - Save, then copy the Client ID and Client Secret it shows you (the
+     secret is only ever shown once, right after creation).
+3. Set both as env vars:
+   ```bash
+   netlify env:set GOOGLE_ADMIN_OAUTH_CLIENT_ID "..."
+   netlify env:set GOOGLE_ADMIN_OAUTH_CLIENT_SECRET "..."
    ```
-   https://horizons-care-stories.netlify.app/.netlify/functions/admin-oauth-callback
-   ```
-   (This is in addition to the existing `http://localhost:3000/oauth2callback`
-   entry the local scripts below still use — don't remove that one.)
+
+This is a separate client from "Story Intake CLI" — leave that one and its
+`localhost:3000` redirect URI untouched, it's still what the local scripts
+below use.
 
 The local scripts (`scripts/get-refresh-token.js` /
 `scripts/get-vertex-refresh-token.js`) still work exactly as before and

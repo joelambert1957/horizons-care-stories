@@ -22,6 +22,33 @@ async function getOverrideToken(which) {
   return value || null;
 }
 
+// A reconnected token was issued by a DIFFERENT OAuth client than the one
+// the env-var tokens use -- Google's "Desktop app" client type (used by
+// scripts/get-refresh-token.js and friends) only supports the localhost
+// loopback redirect, not an arbitrary production HTTPS one, so the /admin
+// reconnect flow needs its own "Web application" type client
+// (GOOGLE_ADMIN_OAUTH_CLIENT_ID/SECRET) with that redirect URI registered.
+// A refresh token only ever refreshes against the client that issued it, so
+// which client_id/secret to use depends on where the active token came
+// from, not just which env var it's stored in.
+async function getActiveCredentials(which, envVarName) {
+  const override = await getOverrideToken(which);
+  if (override) {
+    return {
+      refreshToken: override,
+      clientId: process.env.GOOGLE_ADMIN_OAUTH_CLIENT_ID,
+      clientSecret: process.env.GOOGLE_ADMIN_OAUTH_CLIENT_SECRET,
+      source: 'reconnected',
+    };
+  }
+  return {
+    refreshToken: process.env[envVarName],
+    clientId: process.env.GOOGLE_OAUTH_CLIENT_ID,
+    clientSecret: process.env.GOOGLE_OAUTH_CLIENT_SECRET,
+    source: 'env var',
+  };
+}
+
 async function setOverrideToken(which, refreshToken) {
   await overridesStore().set(`refresh-token-${which}`, refreshToken);
 }
@@ -57,4 +84,4 @@ async function consumeTicket(id) {
   return ticket.which;
 }
 
-module.exports = { getOverrideToken, setOverrideToken, createTicket, peekTicket, consumeTicket };
+module.exports = { getOverrideToken, setOverrideToken, getActiveCredentials, createTicket, peekTicket, consumeTicket };

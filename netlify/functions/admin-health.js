@@ -1,5 +1,5 @@
 const { google } = require('googleapis');
-const { getOverrideToken } = require('./lib/token-store');
+const { getActiveCredentials } = require('./lib/token-store');
 const { WHICH_CONFIG } = require('./lib/oauth-config');
 
 function requireAdmin(event) {
@@ -9,16 +9,12 @@ function requireAdmin(event) {
 
 async function checkToken(which) {
   const config = WHICH_CONFIG[which];
-  const override = await getOverrideToken(which);
-  const refreshToken = override || process.env[config.envVar];
-  const source = override ? 'reconnected' : 'env var';
+  const { clientId, clientSecret, refreshToken, source } = await getActiveCredentials(which, config.envVar);
 
   if (!refreshToken) {
     return { ok: false, source, error: 'No refresh token set.' };
   }
 
-  const clientId = process.env.GOOGLE_OAUTH_CLIENT_ID;
-  const clientSecret = process.env.GOOGLE_OAUTH_CLIENT_SECRET;
   const oauth2Client = new google.auth.OAuth2(clientId, clientSecret);
   oauth2Client.setCredentials({ refresh_token: refreshToken });
 

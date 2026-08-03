@@ -14,8 +14,11 @@ exports.handler = async (event) => {
     return html('<p>This reconnect link has expired or was already used. Go back to /admin and click Reconnect again.</p>');
   }
 
-  const clientId = process.env.GOOGLE_OAUTH_CLIENT_ID;
-  const clientSecret = process.env.GOOGLE_OAUTH_CLIENT_SECRET;
+  // A separate "Web application" type client, not the Desktop one the local
+  // scripts use -- Desktop clients only support the localhost loopback
+  // redirect, not an arbitrary production HTTPS one. See README.md.
+  const clientId = process.env.GOOGLE_ADMIN_OAUTH_CLIENT_ID;
+  const clientSecret = process.env.GOOGLE_ADMIN_OAUTH_CLIENT_SECRET;
   const redirectUri = `https://${event.headers.host}/.netlify/functions/admin-oauth-callback`;
   const oauth2Client = new google.auth.OAuth2(clientId, clientSecret, redirectUri);
 

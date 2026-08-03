@@ -2,7 +2,7 @@ const { schedule } = require('@netlify/functions');
 const { google } = require('googleapis');
 const { VertexAI } = require('@google-cloud/vertexai');
 const { Document, Packer, Paragraph, TextRun, HeadingLevel } = require('docx');
-const { getOverrideToken } = require('./lib/token-store');
+const { getActiveCredentials } = require('./lib/token-store');
 
 // How many not-yet-transcribed rows to process in a single run. Kept small
 // so one run finishes comfortably within the function's execution window --
@@ -28,9 +28,7 @@ Output ONLY the transcript text, with no preamble, labels, or commentary.`;
 // netlify/functions/lib/token-store.js) before falling back to the env var
 // -- lets a reconnect take effect immediately, with no redeploy needed.
 async function getDriveAuth() {
-  const clientId = process.env.GOOGLE_OAUTH_CLIENT_ID;
-  const clientSecret = process.env.GOOGLE_OAUTH_CLIENT_SECRET;
-  const refreshToken = (await getOverrideToken('submission')) || process.env.GOOGLE_OAUTH_REFRESH_TOKEN;
+  const { clientId, clientSecret, refreshToken } = await getActiveCredentials('submission', 'GOOGLE_OAUTH_REFRESH_TOKEN');
   if (!clientId || !clientSecret || !refreshToken) {
     throw new Error('Missing Google OAuth credentials (GOOGLE_OAUTH_CLIENT_ID/SECRET/REFRESH_TOKEN).');
   }
@@ -48,16 +46,16 @@ async function getDriveAuth() {
 // see scripts/get-vertex-refresh-token.js and README.md. Still authenticates
 // as the same user (joe@storyhost.net) via google-auth-library's
 // "authorized_user" credential type (not a service account -- org policy
-// blocks creating those keys), reusing the same OAuth client_id/secret,
-// just a separate authorization grant. That Google account needs the
+// blocks creating those keys). Whether it's the same OAuth client_id/secret
+// as getDriveAuth()'s depends on where the active token came from --
+// getActiveCredentials() returns the matching pair either way (see
+// netlify/functions/lib/token-store.js). That Google account needs the
 // Vertex AI User IAM role granted on the GCP project (Cloud Console -> IAM).
 async function getVertexModel() {
   const project = process.env.GOOGLE_CLOUD_PROJECT_ID;
   const location = process.env.GOOGLE_CLOUD_LOCATION || 'us-central1';
   const modelName = process.env.GOOGLE_VERTEX_MODEL || 'gemini-2.5-flash';
-  const clientId = process.env.GOOGLE_OAUTH_CLIENT_ID;
-  const clientSecret = process.env.GOOGLE_OAUTH_CLIENT_SECRET;
-  const refreshToken = (await getOverrideToken('vertex')) || process.env.GOOGLE_VERTEX_REFRESH_TOKEN;
+  const { clientId, clientSecret, refreshToken } = await getActiveCredentials('vertex', 'GOOGLE_VERTEX_REFRESH_TOKEN');
   if (!project || !clientId || !clientSecret || !refreshToken) {
     throw new Error('Missing Vertex AI configuration (GOOGLE_CLOUD_PROJECT_ID, GOOGLE_OAUTH_CLIENT_ID/SECRET, or GOOGLE_VERTEX_REFRESH_TOKEN).');
   }

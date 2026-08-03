@@ -18,8 +18,8 @@ exports.handler = async (event) => {
     return html(400, '<p>This reconnect link has expired or was already used. Go back to /admin and click Reconnect again.</p>');
   }
 
-  const clientId = process.env.GOOGLE_OAUTH_CLIENT_ID;
-  const clientSecret = process.env.GOOGLE_OAUTH_CLIENT_SECRET;
+  const clientId = process.env.GOOGLE_ADMIN_OAUTH_CLIENT_ID;
+  const clientSecret = process.env.GOOGLE_ADMIN_OAUTH_CLIENT_SECRET;
   const redirectUri = `https://${event.headers.host}/.netlify/functions/admin-oauth-callback`;
   const oauth2Client = new google.auth.OAuth2(clientId, clientSecret, redirectUri);
 
@@ -36,7 +36,7 @@ exports.handler = async (event) => {
       <p>Google didn't return a refresh token -- this usually means this
       account already authorized this app before. Go to
       <a href="https://myaccount.google.com/permissions" target="_blank">myaccount.google.com/permissions</a>,
-      remove access for "Story Intake CLI", then go back to /admin and try
+      remove access for "Story Intake Admin", then go back to /admin and try
       Reconnect again.</p>
     `);
   }
