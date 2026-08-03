@@ -1,5 +1,6 @@
 const { google } = require('googleapis');
 const { Readable } = require('stream');
+const { connectLambda } = require('@netlify/blobs');
 const { getActiveCredentials } = require('./lib/token-store');
 
 // Keep in sync with the client-side cap in app.js (MAX_AUDIO_BYTES). This is
@@ -48,6 +49,8 @@ function sanitizeForFilename(value) {
 }
 
 exports.handler = async (event) => {
+  connectLambda(event); // see admin-oauth-start.js -- required before any getStore() call
+
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, body: JSON.stringify({ error: 'Method not allowed.' }) };
   }

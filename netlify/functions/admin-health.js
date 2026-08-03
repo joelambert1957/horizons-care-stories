@@ -1,4 +1,5 @@
 const { google } = require('googleapis');
+const { connectLambda } = require('@netlify/blobs');
 const { getActiveCredentials } = require('./lib/token-store');
 const { WHICH_CONFIG } = require('./lib/oauth-config');
 
@@ -40,6 +41,8 @@ async function checkToken(which) {
 }
 
 exports.handler = async (event) => {
+  connectLambda(event); // see admin-oauth-start.js -- required before any getStore() call
+
   if (!requireAdmin(event)) {
     return { statusCode: 401, body: JSON.stringify({ error: 'Unauthorized.' }) };
   }

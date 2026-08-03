@@ -1,3 +1,4 @@
+const { connectLambda } = require('@netlify/blobs');
 const { createTicket } = require('./lib/token-store');
 const { WHICH_CONFIG } = require('./lib/oauth-config');
 
@@ -7,6 +8,8 @@ function requireAdmin(event) {
 }
 
 exports.handler = async (event) => {
+  connectLambda(event); // see admin-oauth-start.js -- required before any getStore() call
+
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, body: JSON.stringify({ error: 'Method not allowed.' }) };
   }

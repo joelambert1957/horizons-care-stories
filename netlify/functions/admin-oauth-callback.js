@@ -1,4 +1,5 @@
 const { google } = require('googleapis');
+const { connectLambda } = require('@netlify/blobs');
 const { consumeTicket, setOverrideToken } = require('./lib/token-store');
 const { WHICH_CONFIG } = require('./lib/oauth-config');
 
@@ -7,6 +8,8 @@ function html(statusCode, body) {
 }
 
 exports.handler = async (event) => {
+  connectLambda(event); // see admin-oauth-start.js -- required before any getStore() call
+
   const { code, state, error } = event.queryStringParameters || {};
 
   if (error) {

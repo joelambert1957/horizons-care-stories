@@ -2,6 +2,7 @@ const { schedule } = require('@netlify/functions');
 const { google } = require('googleapis');
 const { VertexAI } = require('@google-cloud/vertexai');
 const { Document, Packer, Paragraph, TextRun, HeadingLevel } = require('docx');
+const { connectLambda } = require('@netlify/blobs');
 const { getActiveCredentials } = require('./lib/token-store');
 
 // How many not-yet-transcribed rows to process in a single run. Kept small
@@ -162,7 +163,9 @@ async function handleRow({ drive, model, transcriptsFolderId, row, rowNumber, sh
   console.log(`Row ${rowNumber} (${audioName}): transcribed -> ${upload.data.webViewLink}`);
 }
 
-const runTranscription = async () => {
+const runTranscription = async (event) => {
+  connectLambda(event); // see admin-oauth-start.js -- required before any getStore() call
+
   const sheetId = process.env.GOOGLE_SHEET_ID;
   const transcriptsFolderId = process.env.GOOGLE_TRANSCRIPTS_FOLDER_ID;
   if (!sheetId || !transcriptsFolderId) {

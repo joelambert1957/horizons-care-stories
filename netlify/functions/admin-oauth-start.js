@@ -1,4 +1,5 @@
 const { google } = require('googleapis');
+const { connectLambda } = require('@netlify/blobs');
 const { peekTicket } = require('./lib/token-store');
 const { WHICH_CONFIG } = require('./lib/oauth-config');
 
@@ -7,6 +8,12 @@ function html(body) {
 }
 
 exports.handler = async (event) => {
+  // Functions run in Lambda compatibility mode, which needs this call
+  // before any getStore() (inside token-store.js) can auto-detect the
+  // site/credentials -- without it, getStore() throws
+  // MissingBlobsEnvironmentError even in production.
+  connectLambda(event);
+
   const ticketId = (event.queryStringParameters || {}).ticket;
   const which = await peekTicket(ticketId);
 
