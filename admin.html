@@ -37,6 +37,26 @@
     color: var(--cream); padding: 0.7rem 0.9rem; margin: 0.8rem 0;
   }
   #loginError { color: var(--error); font-size: 14px; display: none; }
+
+  .admin-section { margin-top: 3rem; }
+  .admin-section h2 { font-size: 1.4rem; font-family: 'Fraunces', serif; font-weight: 500; color: var(--cream); margin: 0 0 1rem; }
+  .admin-inline { display: flex; gap: 0.6rem; align-items: center; margin-bottom: 1.2rem; }
+  .admin-inline input.admin-input { margin: 0; }
+  label.admin-label { display: block; font-size: 13px; color: var(--muted); margin: 0.9rem 0 0.3rem; }
+  textarea.admin-input { min-height: 80px; font-family: 'Karla', sans-serif; resize: vertical; }
+  textarea.admin-mono { font-family: 'IBM Plex Mono', monospace; font-size: 12.5px; min-height: 260px; white-space: pre; }
+  .submission-card {
+    border: 1px solid var(--line); border-radius: 10px; background: var(--card);
+    padding: 1rem 1.1rem; margin-bottom: 0.9rem;
+  }
+  .submission-card .admin-input { margin: 0.3rem 0 0; }
+  .submission-links { font-size: 13px; margin-top: 0.6rem; }
+  .submission-links a { color: var(--amber); margin-right: 1rem; }
+  .submission-links .none { color: var(--muted); }
+  #eventFields { display: none; }
+  #eventFields.show { display: block; }
+  #snippetOutput { display: none; }
+  #snippetOutput.show { display: block; }
 </style>
 </head>
 <body>
@@ -71,6 +91,45 @@
     </div>
     <p style="color: var(--muted); font-size: 13.5px;">Reconnecting opens Google's sign-in in a new tab. Log in as
       <strong>joe@storyhost.net</strong> and approve access — this page updates on its own once it's done.</p>
+
+    <div class="admin-section">
+      <h2>Event data</h2>
+      <div class="admin-inline">
+        <input type="text" id="eventNameInput" class="admin-input" placeholder="Event name, e.g. Story Beta Test">
+        <button class="admin-btn" id="loadEventBtn">Load</button>
+      </div>
+      <p id="eventLoadStatus" style="color: var(--muted); font-size: 13.5px;"></p>
+
+      <div id="submissionCards"></div>
+
+      <div id="eventFields">
+        <label class="admin-label" for="fieldTitle">Title</label>
+        <input type="text" id="fieldTitle" class="admin-input">
+
+        <label class="admin-label" for="fieldDate">Date (YYYY-MM-DD)</label>
+        <input type="text" id="fieldDate" class="admin-input">
+
+        <label class="admin-label" for="fieldLocation">Location</label>
+        <input type="text" id="fieldLocation" class="admin-input">
+
+        <label class="admin-label" for="fieldSlug">Slug (becomes /events/&lt;slug&gt;)</label>
+        <input type="text" id="fieldSlug" class="admin-input">
+
+        <label class="admin-label" for="fieldAudio">Audio path</label>
+        <input type="text" id="fieldAudio" class="admin-input">
+
+        <label class="admin-label" for="fieldDescription">Description</label>
+        <textarea id="fieldDescription" class="admin-input"></textarea>
+
+        <button class="admin-btn" id="generateBtn" style="margin-top: 1rem;">Generate snippet</button>
+      </div>
+
+      <div id="snippetOutput">
+        <label class="admin-label" for="snippetText">Paste this into events-data.js, in place of the matching entry (or before the closing "];" for a new one)</label>
+        <textarea id="snippetText" class="admin-input admin-mono" readonly></textarea>
+        <button class="admin-btn" id="copyBtn">Copy</button>
+      </div>
+    </div>
   </div>
 
 </div>
