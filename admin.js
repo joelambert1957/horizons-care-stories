@@ -153,8 +153,15 @@
       const photoInput = document.createElement('input');
       photoInput.type = 'text';
       photoInput.className = 'admin-input';
-      photoInput.value = sub.portraitLink ? `/portraits/${slugify(sub.name) || 'person-' + i}.jpg` : '';
-      photoInput.placeholder = sub.portraitLink ? '' : 'No portrait submitted';
+      // Every portrait entry needs SOME photo value -- event.js always sets
+      // img.src from it, so an empty/omitted field renders a broken image.
+      // Fall back to the same generic placeholder used for Judy G.'s entry.
+      photoInput.value = sub.portraitLink
+        ? `/portraits/${slugify(sub.name) || 'person-' + i}.jpg`
+        : '/portraits/placeholder-generic.svg';
+      if (!sub.portraitLink) {
+        photoInput.title = 'No portrait was submitted -- defaulted to the generic placeholder. Change this if you have a real photo for them.';
+      }
       photoInput.dataset.field = 'photo';
       card.appendChild(photoInput);
 
